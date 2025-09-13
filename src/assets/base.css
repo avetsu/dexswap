@@ -1,0 +1,169 @@
+:root {
+  --font-family: 'Suisse Intl', sans-serif;
+  --second-family: 'Exo 2', sans-serif;
+  --third-family: 'Nunito Sans', sans-serif;
+}
+@font-face {
+  font-family: 'Exo 2';
+  src: url('/fonts/Exo2-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Exo 2';
+  src: url('/fonts/Exo2-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Exo 2';
+  src: url('/fonts/Exo2-Bold.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Exo 2';
+  src: url('/fonts/Exo2-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/fonts/Montserrat-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Suisse Intl';
+  src: url('/fonts/SuisseIntl-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nunito Sans';
+  src: url('/fonts/NunitoSans10pt-Bold.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Suisse Intl';
+  src: url('/fonts/SuisseIntl-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Suisse Intl';
+  src: url('/fonts/SuisseIntl-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nunito Sans';
+  src: url('/fonts/NunitoSans10pt-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Suisse Intl';
+  src: url('/fonts/SuisseIntl-Bold.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Suisse Intl';
+  src: url('/fonts/SuisseIntl-UltraLight.woff2') format('woff2');
+  font-weight: 250;
+  font-style: normal;
+  font-display: swap;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+img {
+  max-width: 100%;
+  object-fit: cover;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+img {
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+input:focus {
+  border: none;
+  outline: none;
+}
+th,
+td {
+  padding: 0;
+  margin: 0;
+  border: none;
+}
+a {
+  text-decoration: none;
+}
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+button {
+  background-color: transparent;
+  box-shadow: none;
+  border: none;
+  cursor: pointer;
+}
+input:focus {
+  border: none;
+}
+body {
+  background: #eeedf0;
+  min-width: 375px;
+}
+.body--fixed {
+  position: fixed;
+  inset: 0;
+}
+
+#app {
+  height: 100dvh;
+
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+@media (max-width: 576px) {
+  #app {
+    height: auto;
+    overflow: auto;
+  }
+}
