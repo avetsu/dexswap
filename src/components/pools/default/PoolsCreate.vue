@@ -175,14 +175,14 @@ const isSearchHelp = ref(true);
           </div>
           <div class="pool-create__data-minmax">
             <span class="pool-create__data-min"
-              >Мин.
+              >Min.
               <span
                 >{{ pool.priceData.minValue }} {{ pool.priceData.wallet.selected }} /
                 {{ pool.priceData.wallet.notSelected }}</span
               ></span
             >
             <span class="pool-create__data-max"
-              >Макс.
+              >Max.
               <span
                 >{{ pool.priceData.maxValue }} {{ pool.priceData.wallet.selected }} /
                 {{ pool.priceData.wallet.notSelected }}</span
@@ -229,9 +229,7 @@ const isSearchHelp = ref(true);
       </span>
       <div class="pool-create__search-help-content">
         <span class="pool-create__search-title">Need to see your closed positions? </span>
-        <span class="pool-create__search-text"
-          >Simply use the filter above.</span
-        >
+        <span class="pool-create__search-text">Simply use the filter above.</span>
       </div>
       <button class="pool-create__search-close-btn" @click="isSearchHelp = !isSearchHelp">
         <svg

@@ -2,16 +2,19 @@ import { defineStore } from 'pinia';
 import { ref, useId, computed } from 'vue';
 import { usePoolStepsStore } from './PoolStepsStore';
 import { usePoolPricesStore } from './PoolPricesStore';
+import { storeToRefs } from 'pinia';
 
 export const usePoolPairStore = defineStore('PoolPairStore', () => {
   const stepsStore = usePoolStepsStore();
   const priceStore = usePoolPricesStore();
 
+  const { wallets } = storeToRefs(priceStore);
+
   const pairsFirst = ref([
     {
       id: useId(),
-      name: 'LINK',
-      address: '0x779877A7B0D9E8603169DdbD7836e478b4624789',
+      name: 'USDC',
+      address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
       decimals: 6,
       logoUrl: '',
     },
@@ -23,8 +26,8 @@ export const usePoolPairStore = defineStore('PoolPairStore', () => {
   const pairsSecond = ref([
     {
       id: useId(),
-      name: 'PYUSD',
-      address: '0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9',
+      name: 'WETH',
+      address: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14',
       decimals: 18,
       logoUrl: '',
     },
@@ -36,8 +39,20 @@ export const usePoolPairStore = defineStore('PoolPairStore', () => {
   const isSelectedFirst = ref(false);
   const isSelectedSecond = ref(false);
 
-  const defaultSelectFirst = ref({ id: null, name: 'Choose a token', address: '', logoUrl: '' });
-  const defaultSelectSecond = ref({ id: null, name: 'Choose a token', address: '', logoUrl: '' });
+  const defaultSelectFirst = ref({
+    id: null,
+    name: 'Choose a token',
+    address: '',
+    decimals: 0,
+    logoUrl: '',
+  });
+  const defaultSelectSecond = ref({
+    id: null,
+    name: 'Choose a token',
+    address: '',
+    decimals: 0,
+    logoUrl: '',
+  });
 
   const isSelectingFirst = ref(false);
   const isSelectingSecond = ref(false);
@@ -47,6 +62,7 @@ export const usePoolPairStore = defineStore('PoolPairStore', () => {
     isSelectedFirst.value = true;
     isSelectingFirst.value = false;
     isValidFirst.value = true;
+    wallets.value[0].name = pair.name;
   };
 
   const changeSelectSecond = (pair) => {
@@ -54,6 +70,7 @@ export const usePoolPairStore = defineStore('PoolPairStore', () => {
     isSelectedSecond.value = true;
     isSelectingSecond.value = false;
     isValidSecond.value = true;
+    wallets.value[1].name = pair.name;
   };
 
   const commission = ref([

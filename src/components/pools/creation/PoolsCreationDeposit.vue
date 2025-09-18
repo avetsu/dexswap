@@ -2,10 +2,13 @@
 import AppModal from '@/components/AppModal.vue';
 import UIButtonModal from '@/components/ui/UIButtonModal.vue';
 import ModalTokens from '@/components/modals/ModalTokens.vue';
+import { getPoolContract } from '@/components/blockchain/pools';
 import { ref, provide } from 'vue';
 import { usePoolDepositStore } from '@/stores/PoolDepositStore';
 import { usePoolPairStore } from '@/stores/PoolPairStore';
 import { storeToRefs } from 'pinia';
+import { ethers } from 'ethers';
+import { getPrice } from '@/components/blockchain/functions';
 
 const depositStore = usePoolDepositStore();
 const pairStore = usePoolPairStore();
@@ -36,6 +39,59 @@ const selectToken = (token) => {
   }
   openModalFor.value = null;
 };
+
+async function inputAmountA(e) {
+  const pool = await getPoolContract(
+    selectedPair.value.pair[0].address,
+    selectedPair.value.pair[1].address,
+    // 3000,
+    selectedPair.value.commission * 10000,
+  );
+  const slot0 = await pool.slot0();
+  const liquidityBN = await pool.liquidity();
+  const liquidity = Number(ethers.BigNumber.from(liquidityBN));
+  const sqrtPriceX96 = BigInt(slot0.sqrtPriceX96);
+  let price = getPrice(sqrtPriceX96);
+  console.log('sqrtPriceX96:', sqrtPriceX96);
+  console.log('Current price token1/token0:', price);
+  console.log(
+    'Current price:',
+    firstValue.value *
+      price *
+      10 ** (selectedPair.value.pair[0].decimals - selectedPair.value.pair[1].decimals),
+  );
+  onFirstInput(e);
+  secondValue.value =
+    firstValue.value *
+    price *
+    10 ** (selectedPair.value.pair[0].decimals - selectedPair.value.pair[1].decimals);
+}
+async function inputAmountB(e) {
+  const pool = await getPoolContract(
+    selectedPair.value.pair[0].address,
+    selectedPair.value.pair[1].address,
+    // 3000,
+    selectedPair.value.commission * 10000,
+  );
+  const slot0 = await pool.slot0();
+  const liquidityBN = await pool.liquidity();
+  const liquidity = Number(ethers.BigNumber.from(liquidityBN));
+  const sqrtPriceX96 = BigInt(slot0.sqrtPriceX96);
+  let price = getPrice(sqrtPriceX96);
+  console.log('sqrtPriceX96:', sqrtPriceX96);
+  console.log('Current price token1/token0:', price);
+  console.log(
+    'Current price:',
+    secondValue.value /
+      price /
+      10 ** (selectedPair.value.pair[0].decimals - selectedPair.value.pair[1].decimals),
+  );
+  onSecondInput(e);
+  firstValue.value =
+    secondValue.value /
+    price /
+    10 ** (selectedPair.value.pair[0].decimals - selectedPair.value.pair[1].decimals);
+}
 </script>
 
 <template>
@@ -55,9 +111,9 @@ const selectToken = (token) => {
           type="number"
           class="pools-creation-deposit__input-first"
           name="deposit-input-first"
-          value="0,008"
+          value="0"
           v-model="firstValue"
-          @input="onFirstInput"
+          @input="inputAmountA"
         />
         <button class="pools-creation-deposit__btn-max" @click="setMaxFirst">
           ${{ max.toLocaleString('ru-RU').replace('.', ',') }}
@@ -81,9 +137,9 @@ const selectToken = (token) => {
           type="number"
           class="pools-creation-deposit__input-second"
           name="deposit-input-second"
-          value="0,008"
+          value="0"
           v-model="secondValue"
-          @input="onSecondInput"
+          @input="inputAmountB"
         />
         <button class="pools-creation-deposit__btn-max" @click="setMaxSecond">
           ${{ max.toLocaleString('ru-RU').replace('.', ',') }}

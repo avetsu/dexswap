@@ -1,8 +1,9 @@
 <script setup>
+import { ChevronRight } from 'lucide-vue-next';
 import AppBurgerMenu from '@/components/AppBurgerMenu.vue';
 import AppSideBar from '@/components/AppSidebar.vue';
 import { useCurrentPage } from '@/stores/PoolCurrentPage';
-import { useWallet, connectWallet, getWalletData } from './blockchain/wallet';
+import { useWallet, connectWallet, checkIfWalletIsConnected } from './blockchain/wallet';
 import { ref, onMounted, onUnmounted, provide, computed } from 'vue';
 const defaultSvg = '/icons/site-logo.svg';
 const mobileSvg = '/icons/site-logo-mobile.svg';
@@ -20,6 +21,7 @@ function checkWidth() {
 onMounted(() => {
   checkWidth();
   window.addEventListener('resize', checkWidth);
+  checkIfWalletIsConnected();
 });
 onUnmounted(() => {
   window.removeEventListener('resize', checkWidth);
@@ -83,7 +85,9 @@ provide('toggleSidebar', toggleSidebar);
       </form>
 
       <div v-if="!account" class="header__account">
-        <button class="account__profile" @click="getWalletData">Connect</button>
+        <button class="connect__button" @click="connectWallet">
+          Connect{{}}<ChevronRight size="15" />
+        </button>
       </div>
       <div v-else class="header__account">
         <span class="account__name">{{ computedAddress }}</span>
@@ -227,6 +231,24 @@ form input::placeholder {
   form {
     margin-left: 0;
   }
+}
+.connect__button {
+  border-radius: 18px;
+  background: #9ddf1e;
+  max-width: 116px;
+  height: 37px;
+  width: 100%;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px;
+  font-family: var(--third-family);
+  font-weight: 700;
+  font-size: 12px;
+  color: #000;
+  transition: opacity 0.3s ease;
+  z-index: 4;
 }
 .header__account {
   margin-left: auto;

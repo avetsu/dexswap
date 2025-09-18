@@ -3,8 +3,8 @@ import { ref, computed } from 'vue';
 
 export const usePoolDepositStore = defineStore('PoolDepositStore', () => {
   const max = ref(4.52);
-  const firstValue = ref(0.008);
-  const secondValue = ref(0.008);
+  const firstValue = ref(0);
+  const secondValue = ref(0);
 
   const onFirstInput = (e) => {
     firstValue.value = Number(e.target.value.replace(',', '.'));
@@ -27,8 +27,8 @@ export const usePoolDepositStore = defineStore('PoolDepositStore', () => {
   }));
 
   const resetDeposit = () => {
-    firstValue.value = 0.008;
-    secondValue.value = 0.008;
+    firstValue.value = 0;
+    secondValue.value = 0;
   };
 
   return {

@@ -5,6 +5,7 @@ import SideBarNFT from '@/components/sidebar/SidebarNFT.vue';
 import SideBarPools from '@/components/sidebar/SidebarPools.vue';
 import SidebarActivity from '@/components/sidebar/SidebarActivity.vue';
 import AppModal from '@/components/AppModal.vue';
+import { disconnectWallet } from './blockchain/wallet';
 import { inject } from 'vue';
 import ModalQr from './modals/ModalQr.vue';
 
@@ -17,6 +18,12 @@ provide('openModal', openModal);
 
 const isSidebarOpen = inject('isSidebarOpen');
 const toggleSidebar = inject('toggleSidebar');
+
+function toggleDisconnect() {
+  disconnectWallet();
+  toggleSidebar();
+}
+
 const navBtns = ref([
   {
     name: 'token',
@@ -49,7 +56,7 @@ const changeActiveTab = (tabName) => {
   </AppModal>
   <Transition name="slide">
     <div v-if="isSidebarOpen" class="sidebar">
-      <button @click="toggleSidebar" class="sidebar__close-btn">
+      <button @click="toggleDisconnect" class="sidebar__close-btn">
         <svg
           width="20"
           height="22"

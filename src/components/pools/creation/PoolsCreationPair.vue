@@ -18,6 +18,7 @@ const {
   isSelectedSecond,
   isValidSecond,
   commission,
+  selectedPair,
 } = storeToRefs(pairStore);
 
 const { changeSelectFirst, changeSelectSecond, selectCommission } = pairStore;
@@ -55,7 +56,7 @@ onUnmounted(() => {
         <div
           class="creation-pair__select-first"
           ref="dropdownRefFirst"
-          :class="{ notValide: !isValidFirst }"
+          :class="{ notValid: !isValidFirst }"
         >
           <button
             class="creation-pair__select-first-btn"
@@ -102,7 +103,7 @@ onUnmounted(() => {
         <div
           class="creation-pair__select-second"
           ref="dropdownRefSecond"
-          :class="{ notValide: !isValidSecond }"
+          :class="{ notValid: !isValidSecond }"
         >
           <button
             class="creation-pair__select-first-btn"
@@ -157,7 +158,9 @@ onUnmounted(() => {
       </span>
       <div class="creation-pair__commission-select">
         <div class="creation-pair__commission-selects">
-          <span class="creation-pair__commission-select-title">0.3% fee tier </span>
+          <span class="creation-pair__commission-select-title"
+            >{{ selectedPair.commission }}% fee tier
+          </span>
           <div class="creation-pair__commission-list">
             <button
               class="creation-pair__commission-item"
@@ -310,11 +313,11 @@ onUnmounted(() => {
   z-index: 2;
 }
 
-.notValide {
-  animation: notValide 0.5s ease;
+.notValid {
+  animation: notValid 0.5s ease;
 }
 
-@keyframes notValide {
+@keyframes notValid {
   0% {
     transform: rotate(0deg);
   }
@@ -421,7 +424,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 5px;
 }
-.notValide .creation-pair__select-list {
+.notValid .creation-pair__select-list {
   bottom: -146%;
 }
 .creation-pair__select-item:first-child {

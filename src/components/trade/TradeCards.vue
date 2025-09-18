@@ -3,10 +3,13 @@ import AppModal from '@/components/AppModal.vue';
 import ModalTokens from '../modals/ModalTokens.vue';
 import UIButtonModal from '@/components/ui/UIButtonModal.vue';
 import { useTradeStore } from '@/stores/TradeStore';
+import '@/components/blockchain/pools.js';
+import { ref, provide } from 'vue';
+import { storeToRefs } from 'pinia';
 
 const tradeStore = useTradeStore();
 
-import { ref, provide } from 'vue';
+const { tokenA, tokenB } = storeToRefs(tradeStore);
 
 const isModalOpen = ref(false);
 
@@ -29,6 +32,28 @@ const selectToken = (token) => {
   }
   openModalFor.value = null;
 };
+
+function onTokenAInput(e) {
+  let filtered = e.target.value.replace(',', '.');
+  filtered = filtered.replace(/[^0-9.]/g, '');
+  const parts = filtered.split('.');
+  if (parts.length > 2) {
+    filtered = parts[0] + '.' + parts.slice(1).join('');
+  }
+  tokenA.value = filtered;
+}
+
+function onTokenBInput(e) {
+  let filtered = e.target.value.replace(',', '.');
+  filtered = filtered.replace(/[^0-9.]/g, '');
+  const parts = filtered.split('.');
+  if (parts.length > 2) {
+    filtered = parts[0] + '.' + parts.slice(1).join('');
+  }
+  tokenB.value = filtered;
+}
+
+function getQuote(token) {}
 </script>
 
 <template>
@@ -52,7 +77,14 @@ const selectToken = (token) => {
         <div class="swop__sell">
           <span class="swop__sell-name">Sell</span>
 
-          <span class="swop__sell-number">0.0</span>
+          <input
+            type="text"
+            class="swop__sell-number"
+            name="deposit-input-a"
+            value="0,008"
+            v-model="tokenA"
+            @input="onTokenAInput"
+          />
         </div>
 
         <div class="swop__balance">
@@ -132,7 +164,14 @@ const selectToken = (token) => {
         <div class="swop__sell">
           <span class="swop__sell-name">Buy</span>
 
-          <span class="swop__sell-number">0.0</span>
+          <input
+            type="text"
+            class="swop__sell-number"
+            name="deposit-input-a"
+            value="0,008"
+            v-model="tokenB"
+            @input="onTokenBInput"
+          />
         </div>
 
         <div class="swop__balance">
@@ -149,7 +188,7 @@ const selectToken = (token) => {
               >
                 <path
                   d="M14 6.43196V2.93261C14 2.10087 14 1.685 13.8248 1.42943C13.6717 1.20614 13.4346 1.05445 13.1678 1.00904C12.8623 0.957056 12.4847 1.13133 11.7295 1.47988L2.85901 5.57395C2.18551 5.8848 1.84875 6.04022 1.60211 6.28127C1.38406 6.49438 1.21762 6.75451 1.1155 7.04179C1 7.36675 1 7.73764 1 8.47942V13.432M14.5 12.932H14.51M1 9.63196L1 16.232C1 17.3521 1 17.9121 1.21799 18.3399C1.40973 18.7163 1.71569 19.0222 2.09202 19.214C2.51984 19.432 3.07989 19.432 4.2 19.432H15.8C16.9201 19.432 17.4802 19.432 17.908 19.214C18.2843 19.0222 18.5903 18.7163 18.782 18.3399C19 17.9121 19 17.3521 19 16.232V9.63196C19 8.51185 19 7.9518 18.782 7.52398C18.5903 7.14765 18.2843 6.84169 17.908 6.64995C17.4802 6.43196 16.9201 6.43196 15.8 6.43196L4.2 6.43196C3.0799 6.43196 2.51984 6.43196 2.09202 6.64994C1.7157 6.84169 1.40973 7.14765 1.21799 7.52398C1 7.9518 1 8.51185 1 9.63196ZM15 12.932C15 13.2081 14.7761 13.432 14.5 13.432C14.2239 13.432 14 13.2081 14 12.932C14 12.6558 14.2239 12.432 14.5 12.432C14.7761 12.432 15 12.6558 15 12.932Z"
-                  stroke="white"
+                  stroke="#22212E"
                   stroke-opacity="0.6"
                   stroke-width="2"
                   stroke-linecap="round"
@@ -188,7 +227,6 @@ const selectToken = (token) => {
 }
 
 .swop__card {
-
   width: 100%;
   padding: 13px 25px;
   border-radius: 16px;
@@ -209,7 +247,7 @@ const selectToken = (token) => {
   display: flex;
   align-items: center;
   justify-content: center;
-   padding: 5px clamp(50px, 9vw, 90px);
+  padding: 5px clamp(50px, 9vw, 90px);
   z-index: 4;
   border-bottom-left-radius: 24px;
   border-bottom-right-radius: 24px;
@@ -393,14 +431,22 @@ const selectToken = (token) => {
   opacity: 0.5;
 }
 
-.swop__sell-number {
+/* .swop__sell-number {
   font-family: var(--font-family);
   font-weight: 400;
   font-size: clamp(29px, 3vw, 40px);
   text-align: center;
   color: #22212e;
+} */
+.swop__sell-number {
+  width: clamp(29px, 19vw, 151px);
+  border: none;
+  font-family: var(--font-family);
+  font-weight: 400;
+  font-size: clamp(29px, 3vw, 40px);
+  color: #22212e;
+  align-items: start;
 }
-
 .swop__balance-counts {
   display: flex;
   gap: 23px;

@@ -18,6 +18,7 @@ const router = createRouter({
           name: 'create',
           component: () => import('@/pages/CreatePoolPage.vue'),
         },
+        { path: 'nft', name: 'nft', component: () => import('@/pages/NFTPage.vue') },
       ],
     },
     {

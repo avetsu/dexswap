@@ -32,18 +32,18 @@ export const usePoolStore = defineStore('PoolStore', () => {
 
       stepsStore.currentStep++;
     } else if (stepsStore.currentStep === 3) {
-      // finalData.value.push({
-      //   id: useId(),
-      //   pairData: { ...pairStore.formDataPair },
-      //   priceData: { ...priceStore.formDataPrice },
-      //   depositData: { ...depositStore.formDataDeposit },
-      //   type: 'created',
-      // });
-      // stepsStore.currentStep = 1;
-      // isCreating.value = false;
-      // priceStore.isFilledPrice = false;
-      // pairStore.isFilledPair = false;
-      // resetAll();
+      finalData.value.push({
+        id: useId(),
+        pairData: { ...pairStore.formDataPair },
+        priceData: { ...priceStore.formDataPrice },
+        depositData: { ...depositStore.formDataDeposit },
+        type: 'created',
+      });
+      stepsStore.currentStep = 1;
+      isCreating.value = false;
+      priceStore.isFilledPrice = false;
+      pairStore.isFilledPair = false;
+      resetAll();
     }
   };
 

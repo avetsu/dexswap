@@ -9,9 +9,14 @@ import { usePoolStepsStore } from '@/stores/PoolStepsStore';
 import { usePoolPairStore } from '@/stores/PoolPairStore';
 import { usePoolPricesStore } from '@/stores/PoolPricesStore';
 import { usePoolDepositStore } from '@/stores/PoolDepositStore';
-import { getNFPMContract, approveTokens, getPoolAddress } from '@/components/blockchain/pools';
+import {
+  getNFPMContract,
+  approveTokens,
+  getPoolAddress,
+  NFPM_ADDRESS,
+} from '@/components/blockchain/pools';
 import { useWallet, connectWallet } from '@/components/blockchain/wallet';
-import { priceToTick, trimDecimals } from '@/components/blockchain/functions';
+import { getSqrtPriceX96, priceToTick, trimDecimals } from '@/components/blockchain/functions';
 import { FeeAmount, TICK_SPACINGS } from '@/components/blockchain/constants';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
@@ -31,57 +36,81 @@ const { firstValue, secondValue } = storeToRefs(depositStore);
 
 const { account } = useWallet();
 
-const sqrtPriceX96 = BigInt('237668512115345613750168369097');
-const Q96 = 2n ** 96n;
+// const sqrtPriceX96 = BigInt('237668512115345613750168369097');
+// const Q96 = 2n ** 96n;
 
-const price = Number((sqrtPriceX96 * sqrtPriceX96) / (Q96 * Q96));
-
-const feeValue = 3000;
-// const feeValue = selectedPair.value.commission * 10000;
+// const price = Number((sqrtPriceX96 * sqrtPriceX96) / (Q96 * Q96));
 
 async function mintPosition() {
+  const pair0 = selectedPair.value.pair[0];
+  const pair1 = selectedPair.value.pair[1];
+  const feeValue = selectedPair.value.commission * 10000;
+  // const feeValue = 3000;
+  console.log('feeValue', feeValue);
+
   if (!account.value) {
     await connectWallet();
   }
 
   await approveTokens(
     selectedPair.value.pair[0].address,
-    '0x1238536071E1c677A632429e3655c799b22cDA52',
-    ethers.utils.parseUnits(trimDecimals(firstValue.value, 18).toString(), 18),
+    NFPM_ADDRESS,
+    ethers.utils.parseUnits(
+      trimDecimals(firstValue.value, pair0.decimals).toString(),
+      pair0.decimals,
+    ),
   );
   await approveTokens(
     selectedPair.value.pair[1].address,
-    '0x1238536071E1c677A632429e3655c799b22cDA52',
-    ethers.utils.parseUnits(trimDecimals(secondValue.value, 6).toString(), 6),
+    NFPM_ADDRESS,
+    ethers.utils.parseUnits(
+      trimDecimals(secondValue.value, pair1.decimals).toString(),
+      pair1.decimals,
+    ),
   );
 
-  // const poolAddress = await getPoolAddress(
-  //   selectedPair.value.pair[0].address,
-  //   selectedPair.value.pair[1].address,
-  //   feeValue,
-  // );
-
-  // console.log('Pool Address', poolAddress);
+  const poolAddress = await getPoolAddress(pair0.address, pair1.address, feeValue);
+  console.log('Pool Address', poolAddress);
 
   const nfpm = getNFPMContract();
   console.log('Computed Price:', computedPrice.value);
   console.log('Values:', firstValue.value, secondValue.value);
+
+  const amount0 = ethers.utils.parseUnits(
+    trimDecimals(firstValue.value, pair0.decimals).toString(),
+    pair0.decimals,
+  );
+  const amount1 = ethers.utils.parseUnits(
+    trimDecimals(secondValue.value, pair1.decimals).toString(),
+    pair1.decimals,
+  );
+  let price = (amount1 * 10 ** 18) / amount0;
+  price = price / 10 ** 18;
   const params = {
-    token0: selectedPair.value.pair[0].address,
-    token1: selectedPair.value.pair[1].address,
+    token0: pair0.address,
+    token1: pair1.address,
     fee: feeValue,
     tickLower: priceToTick(computedPrice.value.min, TICK_SPACINGS[feeValue]),
     tickUpper: priceToTick(computedPrice.value.max, TICK_SPACINGS[feeValue]),
-    amount0Desired: ethers.utils.parseUnits(trimDecimals(firstValue.value, 18).toString(), 18),
-    amount1Desired: ethers.utils.parseUnits(trimDecimals(secondValue.value, 6).toString(), 6),
-    amount0Min: ethers.utils.parseUnits(trimDecimals(firstValue.value / 1.01, 18).toString(), 18),
-    amount1Min: ethers.utils.parseUnits(trimDecimals(secondValue.value / 1.01, 6).toString(), 6),
+    amount0Desired: amount0,
+    amount1Desired: amount1,
+    // amount0Min: ethers.utils.parseUnits(trimDecimals(firstValue.value / 1.01, 18).toString(), 18),
+    // amount1Min: ethers.utils.parseUnits(trimDecimals(secondValue.value / 1.01, 6).toString(), 6),
+    amount0Min: ethers.utils.parseUnits(trimDecimals(0, pair0.decimals).toString(), pair0.decimals),
+    amount1Min: ethers.utils.parseUnits(trimDecimals(0, pair1.decimals).toString(), pair1.decimals),
     recipient: account.value,
     deadline: Math.floor(Date.now() / 1000) + 60 * 10,
   };
 
   try {
-    console.log('Mint params:', params);
+    await nfpm.createAndInitializePoolIfNecessary(
+      pair0.address,
+      pair1.address,
+      feeValue,
+      getSqrtPriceX96(price),
+    );
+
+    console.log('sqrtPriceX96:', getSqrtPriceX96(price));
     const tx = await nfpm.mint(params, { value: 0 });
     await tx.wait();
     console.log('Mint TX:', tx.hash);
@@ -94,13 +123,13 @@ async function mintPosition() {
 async function goBack() {
   if (currentStep.value === 3) {
     await mintPosition();
-    // router.back();
+    router.back();
   }
 }
-const handleContinueClickAndGoBack = () => {
-  goBack();
+async function handleContinueClickAndGoBack() {
+  await goBack();
   poolStore.handleContinueClick();
-};
+}
 
 const positions = ref([
   {
