@@ -3,15 +3,26 @@ import AppModal from '@/components/AppModal.vue';
 import ModalTokens from '../modals/ModalTokens.vue';
 import UIButtonModal from '@/components/ui/UIButtonModal.vue';
 import { useTradeStore } from '@/stores/TradeStore';
-import '@/components/blockchain/pools.js';
-import { ref, provide } from 'vue';
+import { getQuote, getTokenBalance } from '@/blockchain/pools.js';
+import { ethers } from 'ethers';
+import { ref, provide, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
+import { toReadableAmountWithDecimals, toFixedFloor } from '@/blockchain/functions';
+import { trimDecimals } from '@/blockchain/functions';
 
 const tradeStore = useTradeStore();
 
-const { tokenA, tokenB } = storeToRefs(tradeStore);
+const { tokenA, tokenB, rate, rateToCurrency, feeToCurrency } = storeToRefs(tradeStore);
 
 const isModalOpen = ref(false);
+const openModalFor = ref(null);
+const bottomToken = ref(null);
+const upperToken = ref(null);
+const upperTokenBalance = ref(0);
+const bottomTokenBalance = ref(0);
+const upperTokenBalanceToCurrency = ref(0);
+const bottomTokenBalanceToCurrency = ref(0);
+const currency = ref({ address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', decimals: 6 });
 
 const openModal = () => (isModalOpen.value = true);
 
@@ -19,41 +30,294 @@ const closeModal = () => (isModalOpen.value = false);
 
 provide('openModal', openModal);
 
-const selectedUpperToken = ref({ name: 'USDT', logo: '/icons/tether-small.svg' });
-const selectedBottomToken = ref({ name: 'BTC', logo: '/icons/bitcoin.svg' });
+const selectedUpperToken = ref({
+  name: 'USDC',
+  symbol: 'USDC',
+  logo: 'https://etherscan.io/token/images/usdc_ofc_32.svg',
+  address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+  decimals: 6,
+});
+const selectedBottomToken = ref({
+  name: 'WETH',
+  symbol: 'WETH',
+  logo: 'https://etherscan.io/token/images/weth_28.png?v=2',
+  address: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14',
+  decimals: 18,
+});
 
-const openModalFor = ref(null);
+onMounted(async () => {
+  upperTokenBalance.value = toReadableAmountWithDecimals(
+    await getTokenBalance(selectedUpperToken.value.address),
+    selectedUpperToken.value.decimals,
+  );
+  if (selectedUpperToken.value.address === currency.value.address) {
+    upperTokenBalanceToCurrency.value = upperTokenBalance.value;
+  } else {
+    let op = await getQuote(
+      selectedUpperToken.value.address,
+      currency.value.address,
+      500,
+      ethers.utils.parseUnits(
+        upperTokenBalance.value.toString(),
+        selectedUpperToken.value.decimals,
+      ),
+      0,
+    );
+    upperTokenBalanceToCurrency.value = parseFloat(
+      ethers.utils.formatUnits(op.amountOut, currency.value.decimals),
+    );
+  }
 
-const selectToken = (token) => {
+  bottomTokenBalance.value = toReadableAmountWithDecimals(
+    await getTokenBalance(selectedBottomToken.value.address),
+    selectedBottomToken.value.decimals,
+  );
+  if (selectedBottomToken.value.address === currency.value.address) {
+    bottomTokenBalanceToCurrency.value = bottomTokenBalance.value;
+  } else {
+    let op = await getQuote(
+      selectedBottomToken.value.address,
+      currency.value.address,
+      500,
+      ethers.utils.parseUnits(
+        bottomTokenBalance.value.toString(),
+        selectedBottomToken.value.decimals,
+      ),
+      0,
+    );
+    bottomTokenBalanceToCurrency.value = parseFloat(
+      ethers.utils.formatUnits(op.amountOut, currency.value.decimals),
+    );
+  }
+
+  if (selectedUpperToken.value.address !== selectedBottomToken.value.address) {
+    let op = await getQuote(
+      selectedUpperToken.value.address,
+      selectedBottomToken.value.address,
+      500,
+      ethers.utils.parseUnits('1', selectedUpperToken.value.decimals),
+      0,
+    );
+    rate.value = parseFloat(
+      ethers.utils.formatUnits(op.amountOut, selectedBottomToken.value.decimals),
+    );
+  } else {
+    rate.value = 1;
+  }
+  if (selectedUpperToken.value.address !== currency.value.address) {
+    let op = await getQuote(
+      selectedUpperToken.value.address,
+      currency.value.address,
+      500,
+      ethers.utils.parseUnits('1', selectedUpperToken.value.decimals),
+      0,
+    );
+    rateToCurrency.value = parseFloat(
+      ethers.utils.formatUnits(op.amountOut, currency.value.decimals),
+    );
+  } else {
+    rateToCurrency.value = '1.00';
+  }
+
+  tokenA.value.address = selectedUpperToken.value.address;
+  tokenA.value.decimals = selectedUpperToken.value.decimals;
+  tokenA.value.symbol = selectedUpperToken.value.symbol;
+  tokenB.value.address = selectedBottomToken.value.address;
+  tokenB.value.decimals = selectedBottomToken.value.decimals;
+  tokenB.value.symbol = selectedBottomToken.value.symbol;
+});
+
+const selectToken = async (token) => {
   if (openModalFor.value === 'upper') {
-    selectedUpperToken.value = { name: token.title, logo: token.logo };
+    selectedUpperToken.value = {
+      name: token.title,
+      symbol: token.symbol,
+      logo: token.logo,
+      address: token.address,
+      decimals: token.decimals,
+    };
+    upperTokenBalance.value = toReadableAmountWithDecimals(
+      await getTokenBalance(selectedUpperToken.value.address),
+      selectedUpperToken.value.decimals,
+    );
+    if (selectedUpperToken.value.address === currency.value.address) {
+      upperTokenBalanceToCurrency.value = upperTokenBalance.value;
+    } else {
+      let op = await getQuote(
+        selectedUpperToken.value.address,
+        currency.value.address,
+        500,
+        ethers.utils.parseUnits(
+          upperTokenBalance.value.toString(),
+          selectedUpperToken.value.decimals,
+        ),
+        0,
+      );
+      upperTokenBalanceToCurrency.value = parseFloat(
+        ethers.utils.formatUnits(op.amountOut, currency.value.decimals),
+      );
+    }
+    tokenA.value.address = selectedUpperToken.value.address;
+    tokenA.value.decimals = selectedUpperToken.value.decimals;
+    tokenA.value.symbol = selectedUpperToken.value.name;
   } else if (openModalFor.value === 'bottom') {
-    selectedBottomToken.value = { name: token.title, logo: token.logo };
+    selectedBottomToken.value = {
+      name: token.title,
+      symbol: token.symbol,
+      logo: token.logo,
+      address: token.address,
+      decimals: token.decimals,
+    };
+    bottomTokenBalance.value = toReadableAmountWithDecimals(
+      await getTokenBalance(selectedBottomToken.value.address),
+      selectedBottomToken.value.decimals,
+    );
+    if (selectedBottomToken.value.address === currency.value.address) {
+      bottomTokenBalanceToCurrency.value = bottomTokenBalance.value;
+    } else {
+      let op = await getQuote(
+        selectedBottomToken.value.address,
+        currency.value.address,
+        500,
+        ethers.utils.parseUnits(
+          bottomTokenBalance.value.toString(),
+          selectedBottomToken.value.decimals,
+        ),
+        0,
+      );
+      bottomTokenBalanceToCurrency.value = parseFloat(
+        ethers.utils.formatUnits(op.amountOut, currency.value.decimals),
+      );
+    }
+    tokenB.value.address = selectedBottomToken.value.address;
+    tokenB.value.decimals = selectedBottomToken.value.decimals;
+    tokenB.value.symbol = selectedBottomToken.value.symbol;
+  }
+  if (selectedUpperToken.value.address !== selectedBottomToken.value.address) {
+    let op = await getQuote(
+      selectedUpperToken.value.address,
+      selectedBottomToken.value.address,
+      500,
+      ethers.utils.parseUnits('1', selectedUpperToken.value.decimals),
+      0,
+    );
+    rate.value = parseFloat(
+      ethers.utils.formatUnits(op.amountOut, selectedBottomToken.value.decimals),
+    );
+  } else {
+    rate.value = 1;
+  }
+  if (selectedUpperToken.value.address !== currency.value.address) {
+    let op = await getQuote(
+      selectedUpperToken.value.address,
+      currency.value.address,
+      500,
+      ethers.utils.parseUnits('1', selectedUpperToken.value.decimals),
+      0,
+    );
+    rateToCurrency.value = parseFloat(
+      ethers.utils.formatUnits(op.amountOut, currency.value.decimals),
+    );
+  } else {
+    rateToCurrency.value = '1.00';
   }
   openModalFor.value = null;
 };
 
-function onTokenAInput(e) {
+async function onTokenAInput(e) {
   let filtered = e.target.value.replace(',', '.');
   filtered = filtered.replace(/[^0-9.]/g, '');
+  if (/^0[0-9]+/.test(filtered)) {
+    filtered = filtered.replace(/^0+/, '');
+  }
+  if (filtered === '' || filtered === '0') {
+    tokenB.value.amount = '0';
+    tokenA.value.amount = '0';
+    feeToCurrency.value = '0.00';
+    return;
+  }
   const parts = filtered.split('.');
   if (parts.length > 2) {
     filtered = parts[0] + '.' + parts.slice(1).join('');
   }
-  tokenA.value = filtered;
+  tokenA.value.amount = filtered;
+  if (selectedUpperToken.value.address !== selectedBottomToken.value.address) {
+    let op = await getQuote(
+      selectedUpperToken.value.address,
+      selectedBottomToken.value.address,
+      500,
+      ethers.utils.parseUnits(filtered, selectedUpperToken.value.decimals),
+      0,
+    );
+    tokenB.value.amount = parseFloat(
+      ethers.utils.formatUnits(op.amountOut, selectedBottomToken.value.decimals),
+    );
+  }
+  if (selectedUpperToken.value.address !== currency.value.address) {
+    let feeEstimate = await getQuote(
+      selectedUpperToken.value.address,
+      currency.value.address,
+      500,
+      ethers.utils.parseUnits(
+        trimDecimals(Number(filtered) * 0.05, selectedUpperToken.value.decimals).toString(),
+        selectedUpperToken.value.decimals,
+      ),
+      0,
+    );
+    feeToCurrency.value = parseFloat(
+      ethers.utils.formatUnits(feeEstimate.amountOut, currency.value.decimals),
+    );
+  } else {
+    feeToCurrency.value = (Number(filtered) * 0.05).toString();
+  }
 }
 
-function onTokenBInput(e) {
+async function onTokenBInput(e) {
   let filtered = e.target.value.replace(',', '.');
   filtered = filtered.replace(/[^0-9.]/g, '');
+  if (/^0[0-9]+/.test(filtered)) {
+    filtered = filtered.replace(/^0+/, '');
+  }
+  if (filtered === '' || filtered === '0') {
+    tokenB.value.amount = '0';
+    tokenA.value.amount = '0';
+    return;
+  }
   const parts = filtered.split('.');
   if (parts.length > 2) {
     filtered = parts[0] + '.' + parts.slice(1).join('');
   }
-  tokenB.value = filtered;
+  tokenB.value.amount = filtered;
+  if (selectedUpperToken.value.address !== selectedBottomToken.value.address) {
+    let op = await getQuote(
+      selectedBottomToken.value.address,
+      selectedUpperToken.value.address,
+      500,
+      ethers.utils.parseUnits(filtered, selectedBottomToken.value.decimals),
+      0,
+    );
+    tokenA.value.amount = parseFloat(
+      ethers.utils.formatUnits(op.amountOut, selectedUpperToken.value.decimals),
+    );
+  }
+  if (selectedBottomToken.value.address !== currency.value.address) {
+    let feeEstimate = await getQuote(
+      selectedBottomToken.value.address,
+      currency.value.address,
+      500,
+      ethers.utils.parseUnits(
+        trimDecimals(Number(filtered) * 0.05, selectedBottomToken.value.decimals).toString(),
+        selectedBottomToken.value.decimals,
+      ),
+      0,
+    );
+    feeToCurrency.value = parseFloat(
+      ethers.utils.formatUnits(feeEstimate.amountOut, currency.value.decimals),
+    );
+  } else {
+    feeToCurrency.value = (Number(filtered) * 0.05).toString();
+  }
 }
-
-function getQuote(token) {}
 </script>
 
 <template>
@@ -76,13 +340,12 @@ function getQuote(token) {}
       <div class="swop__stats">
         <div class="swop__sell">
           <span class="swop__sell-name">Sell</span>
-
           <input
             type="text"
             class="swop__sell-number"
             name="deposit-input-a"
-            value="0,008"
-            v-model="tokenA"
+            value="0"
+            v-model="tokenA.amount"
             @input="onTokenAInput"
           />
         </div>
@@ -109,9 +372,25 @@ function getQuote(token) {}
                 />
               </svg>
 
-              <span class="swop__balance-value">8450<span>.00</span></span>
+              <span class="swop__balance-value"
+                >{{ Math.floor(upperTokenBalance)
+                }}<span
+                  >.{{
+                    (upperTokenBalance.toString().split('.')[1] || '')
+                      .slice(0, 10)
+                      .replace(/0+$/, '') || '0'
+                  }}</span
+                ></span
+              >
             </span>
-            <span class="swop__balance-dollar"> $2225<span>.00</span> </span>
+            <span class="swop__balance-dollar"
+              >${{ Math.floor(upperTokenBalanceToCurrency)
+              }}<span
+                >.{{
+                  toFixedFloor(upperTokenBalanceToCurrency, 2).toString().split('.')[1] || '0'
+                }}</span
+              >
+            </span>
           </div>
         </div>
         <div class="swop__arrow">
@@ -168,8 +447,8 @@ function getQuote(token) {}
             type="text"
             class="swop__sell-number"
             name="deposit-input-a"
-            value="0,008"
-            v-model="tokenB"
+            value="0"
+            v-model="tokenB.amount"
             @input="onTokenBInput"
           />
         </div>
@@ -196,10 +475,26 @@ function getQuote(token) {}
                 />
               </svg>
 
-              <span class="swop__balance-value">8450<span>.00</span></span>
+              <span class="swop__balance-value"
+                >{{ Math.floor(bottomTokenBalance)
+                }}<span
+                  >.{{
+                    (bottomTokenBalance.toString().split('.')[1] || '')
+                      .slice(0, 10)
+                      .replace(/0+$/, '') || '0'
+                  }}</span
+                ></span
+              >
             </span>
 
-            <span class="swop__balance-dollar"> $2225<span>.00</span> </span>
+            <span class="swop__balance-dollar"
+              >${{ Math.floor(bottomTokenBalanceToCurrency)
+              }}<span
+                >.{{
+                  toFixedFloor(bottomTokenBalanceToCurrency, 2).toString().split('.')[1] || '0'
+                }}</span
+              >
+            </span>
           </div>
         </div>
       </div>
@@ -430,14 +725,6 @@ function getQuote(token) {}
   color: #22212e;
   opacity: 0.5;
 }
-
-/* .swop__sell-number {
-  font-family: var(--font-family);
-  font-weight: 400;
-  font-size: clamp(29px, 3vw, 40px);
-  text-align: center;
-  color: #22212e;
-} */
 .swop__sell-number {
   width: clamp(29px, 19vw, 151px);
   border: none;

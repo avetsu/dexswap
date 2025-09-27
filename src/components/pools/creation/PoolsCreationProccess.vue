@@ -9,15 +9,10 @@ import { usePoolStepsStore } from '@/stores/PoolStepsStore';
 import { usePoolPairStore } from '@/stores/PoolPairStore';
 import { usePoolPricesStore } from '@/stores/PoolPricesStore';
 import { usePoolDepositStore } from '@/stores/PoolDepositStore';
-import {
-  getNFPMContract,
-  approveTokens,
-  getPoolAddress,
-  NFPM_ADDRESS,
-} from '@/components/blockchain/pools';
-import { useWallet, connectWallet } from '@/components/blockchain/wallet';
-import { getSqrtPriceX96, priceToTick, trimDecimals } from '@/components/blockchain/functions';
-import { FeeAmount, TICK_SPACINGS } from '@/components/blockchain/constants';
+import { getNFPMContract, approveTokens, getPoolAddress, NFPM_ADDRESS } from '@/blockchain/pools';
+import { useWallet, connectWallet } from '@/blockchain/wallet';
+import { getSqrtPriceX96, priceToTick, trimDecimals } from '@/blockchain/functions';
+import { FeeAmount, TICK_SPACINGS } from '@/blockchain/constants';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 

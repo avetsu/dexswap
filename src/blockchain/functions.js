@@ -20,6 +20,8 @@ export function trimDecimals(num, decimals) {
 }
 
 export function fromReadableAmount(amount, decimals) {
+  console.log('rawamountAmount:', amount);
+  console.log('decimals:', decimals);
   const extraDigits = Math.pow(10, countDecimals(amount));
   const adjustedAmount = amount * extraDigits;
   return JSBI.divide(
@@ -38,11 +40,15 @@ export function toReadableAmount(rawAmount, decimals) {
   ).toString();
 }
 
+export function toReadableAmountWithDecimals(rawAmount, decimals) {
+  return Number(rawAmount) / 10 ** decimals;
+}
+
 function countDecimals(x) {
-  if (Math.floor(x) === x) {
-    return 0;
-  }
-  return x.toString().split('.')[1].length || 0;
+  if (x == null) return 0;
+  if (Math.floor(x) === x) return 0;
+  const parts = x.toString().split('.');
+  return parts.length > 1 ? parts[1].length : 0;
 }
 
 export function getSqrtPriceX96(price) {
@@ -51,4 +57,9 @@ export function getSqrtPriceX96(price) {
 
 export function getPrice(sqrtPriceX96) {
   return (Number(sqrtPriceX96) / Number(Q96)) ** Number(2n);
+}
+
+export function toFixedFloor(num, decimals = 2) {
+  const factor = Math.pow(10, decimals);
+  return (Math.floor(parseFloat(num) * factor) / factor).toFixed(decimals);
 }

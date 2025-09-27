@@ -1,5 +1,5 @@
 <script>
-import { getPrice } from '@/components/blockchain/functions';
+import { getPrice } from '@/blockchain/functions';
 import {
   approveTokens,
   decreaseLiquidity,
@@ -10,8 +10,8 @@ import {
   increaseLiquidity,
   NFPM_ADDRESS,
   getToken,
-} from '@/components/blockchain/pools';
-import { trimDecimals } from '@/components/blockchain/functions';
+} from '@/blockchain/pools';
+import { trimDecimals } from '@/blockchain/functions';
 import { ethers } from 'ethers';
 import { TickMath, Position, Pool } from '@uniswap/v3-sdk';
 
@@ -33,7 +33,6 @@ export default {
       field4: '',
       field5: '',
       value: 0,
-      chainId: 11155111,
     };
   },
   async mounted() {
@@ -182,8 +181,8 @@ export default {
       // );e
     },
     async getLiquidityForAmounts() {
-      const token0 = await getToken(this.NFTdata.token0, this.chainId);
-      const token1 = await getToken(this.NFTdata.token1, this.chainId);
+      const token0 = await getToken(this.NFTdata.token0);
+      const token1 = await getToken(this.NFTdata.token1);
 
       console.log('Token0:', token0);
       console.log('Token1:', token1);

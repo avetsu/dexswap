@@ -5,7 +5,7 @@ import SideBarNFT from '@/components/sidebar/SidebarNFT.vue';
 import SideBarPools from '@/components/sidebar/SidebarPools.vue';
 import SidebarActivity from '@/components/sidebar/SidebarActivity.vue';
 import AppModal from '@/components/AppModal.vue';
-import { disconnectWallet } from './blockchain/wallet';
+import { disconnectWallet } from '@/blockchain/wallet';
 import { inject } from 'vue';
 import ModalQr from './modals/ModalQr.vue';
 

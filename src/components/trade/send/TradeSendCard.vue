@@ -1,8 +1,17 @@
 <script setup>
+import { ethers } from 'ethers';
 import UIButtonModal from '@/components/ui/UIButtonModal.vue';
 import AppModal from '@/components/AppModal.vue';
 import ModalTokens from '@/components/modals/ModalTokens.vue';
-import { ref, provide } from 'vue';
+import { getTokenBalance, getQuote } from '@/blockchain/pools';
+import { toReadableAmountWithDecimals, toFixedFloor } from '@/blockchain/functions';
+import { ref, provide, onMounted } from 'vue';
+import { useTradeStore } from '@/stores/TradeStore';
+import { storeToRefs } from 'pinia';
+
+const tradeStore = useTradeStore();
+
+const { tokenToSend } = storeToRefs(tradeStore);
 
 const isModalOpen = ref(false);
 
@@ -11,14 +20,76 @@ const closeModal = () => (isModalOpen.value = false);
 
 provide('openModal', openModal);
 
-const selectedToken = ref({ name: 'USDT', logo: '/icons/tether-small.svg' });
-
 const openModalFor = ref(null);
+const tokenBalance = ref(0);
+const tokenBalanceToCurrency = ref(0);
+const currency = ref({ address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', decimals: 6 });
 
-const selectToken = (token) => {
-  selectedToken.value = { name: token.title, logo: token.logo };
+const selectedToken = ref({
+  name: 'USDT',
+  logo: '/icons/tether-small.svg',
+  address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+  decimals: 6,
+});
+
+onMounted(async () => {
+  await getBalance();
+  tokenToSend.value.address = selectedToken.value.address;
+  tokenToSend.value.symbol = selectedToken.value.name;
+  tokenToSend.value.decimals = selectedToken.value.decimals;
+});
+
+async function getBalance() {
+  tokenBalance.value = toReadableAmountWithDecimals(
+    await getTokenBalance(selectedToken.value.address),
+    selectedToken.value.decimals,
+  );
+  if (selectedToken.value.address === currency.value.address) {
+    tokenBalanceToCurrency.value = tokenBalance.value;
+  } else {
+    let op = await getQuote(
+      selectedToken.value.address,
+      currency.value.address,
+      500,
+      ethers.utils.parseUnits(tokenBalance.value.toString(), selectedToken.value.decimals),
+      0,
+    );
+    tokenBalanceToCurrency.value = parseFloat(
+      ethers.utils.formatUnits(op.amountOut, currency.value.decimals),
+    );
+  }
+}
+
+const selectToken = async (token) => {
+  selectedToken.value = {
+    name: token.title,
+    logo: token.logo,
+    address: token.address,
+    decimals: token.decimals,
+  };
   openModalFor.value = null;
+  tokenToSend.value = selectedToken.value;
+  tokenToSend.value.amount = 0;
+
+  await getBalance();
 };
+
+function onTokenInput(e) {
+  let filtered = e.target.value.replace(',', '.');
+  filtered = filtered.replace(/[^0-9.]/g, '');
+  if (/^0[0-9]+/.test(filtered)) {
+    filtered = filtered.replace(/^0+/, '');
+  }
+  if (filtered === '' || filtered === '0') {
+    tokenToSend.value.amount = '0';
+    return;
+  }
+  const parts = filtered.split('.');
+  if (parts.length > 2) {
+    filtered = parts[0] + '.' + parts.slice(1).join('');
+  }
+  tokenToSend.value.amount = filtered;
+}
 </script>
 
 <template>
@@ -38,7 +109,14 @@ const selectToken = (token) => {
     <div class="send__card-content">
       <div class="send__card-value">
         <span class="send__card-value-name">You are sending</span>
-        <span class="send__card-value-count">1 362</span>
+        <input
+          type="text"
+          class="send__card-value-count"
+          name="deposit-input-a"
+          value="0"
+          v-model="tokenToSend.amount"
+          @input="onTokenInput"
+        />
       </div>
       <div class="send__card-balance">
         <span class="send__card-balance-name"> Your balance </span>
@@ -60,9 +138,22 @@ const selectToken = (token) => {
                 stroke-linejoin="round"
               />
             </svg>
-            <span class="send__card-balance-value"> 8450<span>.00</span></span>
+            <span class="send__card-balance-value"
+              >{{ Math.floor(tokenBalance)
+              }}<span
+                >.{{
+                  (tokenBalance.toString().split('.')[1] || '').slice(0, 10).replace(/0+$/, '') ||
+                  '0'
+                }}</span
+              ></span
+            >
           </span>
-          <span class="send__card-balance-dollar"> $2225<span>.00</span> </span>
+          <span class="send__card-balance-dollar"
+            >${{ Math.floor(tokenBalanceToCurrency)
+            }}<span
+              >.{{ toFixedFloor(tokenBalanceToCurrency, 2).toString().split('.')[1] || '0' }}</span
+            >
+          </span>
         </div>
       </div>
     </div>
@@ -73,7 +164,6 @@ const selectToken = (token) => {
       @click="openModal"
     />
     <div class="send__card-cut">
-
       <span class="send__card-cut-left"></span>
       <span class="send__card-cut-left-bottom"></span>
       <span class="send__card-cut-right"></span>
@@ -92,7 +182,7 @@ const selectToken = (token) => {
   padding: 14px 25px 40px 25px;
   position: relative;
 }
-.send__card-cut{
+.send__card-cut {
   position: absolute;
   bottom: 0;
   left: 50%;
@@ -105,7 +195,7 @@ const selectToken = (token) => {
   border-top-right-radius: 24px;
   z-index: 1;
 }
-.send__card-cut-left{
+.send__card-cut-left {
   position: absolute;
   width: 30px;
   height: 30px;
@@ -114,7 +204,7 @@ const selectToken = (token) => {
   bottom: 0;
   border-bottom-right-radius: 24px;
 }
-.send__card-cut-right{
+.send__card-cut-right {
   position: absolute;
   width: 30px;
   height: 30px;
@@ -146,12 +236,14 @@ const selectToken = (token) => {
   opacity: 0.5;
   z-index: 4;
 }
-
 .send__card-value-count {
+  width: clamp(29px, 19vw, 151px);
+  border: none;
   font-family: var(--font-family);
   font-weight: 400;
   font-size: clamp(29px, 3vw, 40px);
   color: #22212e;
+  align-items: start;
 }
 .send__card-balance {
   display: flex;
