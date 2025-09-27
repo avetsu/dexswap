@@ -2,13 +2,13 @@
 import AppModal from '@/components/AppModal.vue';
 import UIButtonModal from '@/components/ui/UIButtonModal.vue';
 import ModalTokens from '@/components/modals/ModalTokens.vue';
-import { getPoolContract } from '@/components/blockchain/pools';
+import { getPoolContract } from '@/blockchain/pools';
 import { ref, provide } from 'vue';
 import { usePoolDepositStore } from '@/stores/PoolDepositStore';
 import { usePoolPairStore } from '@/stores/PoolPairStore';
 import { storeToRefs } from 'pinia';
 import { ethers } from 'ethers';
-import { getPrice } from '@/components/blockchain/functions';
+import { getPrice } from '@/blockchain/functions';
 
 const depositStore = usePoolDepositStore();
 const pairStore = usePoolPairStore();

@@ -1,7 +1,20 @@
+<script setup>
+import { useTradeStore } from '@/stores/TradeStore';
+import { storeToRefs } from 'pinia';
+
+const tradeStore = useTradeStore();
+
+const { recipient } = storeToRefs(tradeStore);
+
+function onRecipientInput(e) {
+  recipient.value = e.target.value;
+}
+</script>
+
 <template>
   <form class="card__send-wallet">
     <span class="card__send-wallet-title">
-     <span class="card__send-wallet-title-text">Enter your wallet address</span>
+      <span class="card__send-wallet-title-text">Enter your wallet address</span>
       <span class="card__send-wallet-left"></span>
       <span class="card__send-wallet-left-bottom"></span>
       <span class="card__send-wallet-left-bottom-angle"></span>
@@ -9,7 +22,12 @@
       <span class="card__send-wallet-right-bottom"></span>
       <span class="card__send-wallet-right-bottom-angle"></span>
     </span>
-    <input type="text" class="card__send-wallet-input" />
+    <input
+      type="text"
+      class="card__send-wallet-input"
+      v-model="recipient"
+      @input="onRecipientInput"
+    />
   </form>
 </template>
 
@@ -30,8 +48,8 @@
   font-size: 12px;
   color: #22212e;
   padding: 10px;
-  border-top-left-radius:  16px;
-  border-top-right-radius:  16px;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
   background-color: #fff;
   max-width: fit-content;
   position: absolute;
@@ -39,25 +57,24 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 3;
-
 }
-.card__send-wallet-title-text{
+.card__send-wallet-title-text {
   z-index: 3;
   position: relative;
 }
-.card__send-wallet-left{
+.card__send-wallet-left {
   width: 30px;
   height: 30px;
   background-color: #eeedf0;
   position: absolute;
-  border-bottom-right-radius:  24px;
+  border-bottom-right-radius: 24px;
   top: 0px;
   left: -15px;
   transform: translateX(-50%);
   z-index: 2;
 }
 
-.card__send-wallet-left-bottom{
+.card__send-wallet-left-bottom {
   width: 30px;
   height: 30px;
   background-color: #fff;
@@ -66,9 +83,8 @@
   left: 0;
   transform: translateX(-50%);
   z-index: 1;
-
 }
-.card__send-wallet-left-bottom-angle{
+.card__send-wallet-left-bottom-angle {
   width: 30px;
   height: 30px;
   background-color: #fff;
@@ -79,7 +95,7 @@
   border-bottom-right-radius: 24px;
   z-index: 3;
 }
-.card__send-wallet-right-bottom-angle{
+.card__send-wallet-right-bottom-angle {
   width: 30px;
   height: 30px;
   background-color: #fff;
@@ -90,19 +106,19 @@
   border-bottom-left-radius: 24px;
   z-index: 3;
 }
-.card__send-wallet-right{
+.card__send-wallet-right {
   width: 30px;
   height: 30px;
   background-color: #eeedf0;
   position: absolute;
-  border-bottom-left-radius:  24px;
+  border-bottom-left-radius: 24px;
   top: 0px;
   right: -15px;
   transform: translateX(50%);
   z-index: 2;
 }
 
-.card__send-wallet-right-bottom{
+.card__send-wallet-right-bottom {
   width: 30px;
   height: 30px;
   background-color: #fff;
@@ -120,7 +136,7 @@
   color: #fff;
   opacity: 0.5;
 }
-input{
+input {
   border: none;
   outline: none;
 }

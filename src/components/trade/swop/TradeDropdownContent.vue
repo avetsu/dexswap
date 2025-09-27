@@ -1,8 +1,19 @@
+<script setup>
+import { storeToRefs } from 'pinia';
+import { useTradeStore } from '@/stores/TradeStore';
+
+const tradeStore = useTradeStore();
+
+const { feeToCurrency } = storeToRefs(tradeStore);
+</script>
+
 <template>
   <ul class="dropdown__list">
     <li class="dropdown__item">
-      <span class="dropdown__item-name">Fee (0,25%)</span>
-      <span class="dropdown__item-value"><strong>6,47 $</strong></span>
+      <span class="dropdown__item-name">Fee (0,50%)</span>
+      <span class="dropdown__item-value"
+        ><strong>{{ (Math.floor(feeToCurrency * 10 ** 2) / 10 ** 2).toFixed(2) }} $</strong></span
+      >
     </li>
     <li class="dropdown__item">
       <span class="dropdown__item-name">Network cost</span>

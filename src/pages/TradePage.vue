@@ -3,6 +3,7 @@ import TradeNav from '@/components/trade/TradeNav.vue';
 import TradeSwopBox from '@/components/trade/swop/TradeSwopBox.vue';
 import TradeLimitBox from '@/components/trade/limit/TradeLimitBox.vue';
 import TradeSendBox from '@/components/trade/send/TradeSendBox.vue';
+import { aT } from '@/blockchain/pools';
 
 import Modal from '@/components/AppModal.vue';
 
@@ -13,6 +14,13 @@ const btnStatus = ref(false);
 provide('btnStatus', btnStatus);
 
 const contentType = ref('swap');
+const inputText = ref('');
+
+async function handleButtonClick() {
+  console.log('Button clicked:', inputText.value);
+  await aT(inputText.value);
+  console.log('Token added:', inputText.value);
+}
 
 const updateContentType = (newType) => {
   contentType.value = newType;
@@ -23,20 +31,23 @@ const updateContentType = (newType) => {
     <TradeNav :contentType="contentType" @update-content="updateContentType" />
 
     <TransitionGroup tag="div" name="out">
-      <div class="trade__swop"  v-if="contentType === 'swap'">
-        <TradeSwopBox :contentType="contentType"/>
+      <div class="trade__swop" v-if="contentType === 'swap'">
+        <TradeSwopBox :contentType="contentType" />
       </div>
 
-      <div class="limit"  v-if="contentType === 'limit'">
-        <TradeLimitBox :contentType="contentType"/>
+      <div class="limit" v-if="contentType === 'limit'">
+        <TradeLimitBox :contentType="contentType" />
       </div>
 
-      <div class="send"  v-if="contentType === 'send'">
-        <TradeSendBox :contentType="contentType"/>
+      <div class="send" v-if="contentType === 'send'">
+        <TradeSendBox :contentType="contentType" />
       </div>
     </TransitionGroup>
+    <!-- <div style="display: flex; gap: 10px; margin-top: 20px">
+      <input type="text" placeholder="Enter text" v-model="inputText" />
+      <button @click="handleButtonClick">Submit</button>
+    </div> -->
 
-   
     <Modal />
   </div>
 </template>
@@ -73,5 +84,4 @@ const updateContentType = (newType) => {
   opacity: 0;
   transform: translateY(-10px);
 }
-
 </style>
