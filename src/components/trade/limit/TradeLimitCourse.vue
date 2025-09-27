@@ -56,22 +56,27 @@ const selectToken = (token) => {
   </AppModal>
   <div class="limit__upper">
     <span class="limit__card-top-name">
-        LIMIT
-        <span class="limit-angle-left-top"></span>
-        <span class="limit-angle-left-bottom"></span>
-        <span class="limit-angle-left-bottom-bg"></span>
-        <span class="limit-angle-right-top"></span>
-        <span class="limit-angle-right-bottom"></span>
-        <span class="limit-angle-right-bottom-bg"></span>
-      </span>
+      LIMIT
+      <span class="limit-angle-left-top"></span>
+      <span class="limit-angle-left-bottom"></span>
+      <span class="limit-angle-left-bottom-bg"></span>
+      <span class="limit-angle-right-top"></span>
+      <span class="limit-angle-right-bottom"></span>
+      <span class="limit-angle-right-bottom-bg"></span>
+    </span>
     <div class="limit__upper-content">
       <span class="limit__upper-title">
         When 1 BTC
         <img :src="'./icons/bitcoin-limit.svg'" alt="" />
       </span>
-      <span class="limit__upper-value">
+      <input
+        type="text"
+        class="limit__upper-value"
+        v-model="prices.find((item) => item.isActive).price"
+      />
+      <!-- <span class="limit__upper-value">
         {{ prices.find((item) => item.isActive).price.toLocaleString('ru-RU') }}
-      </span>
+      </span> -->
       <div class="limit__upper-btns">
         <button
           class="limit__upper-btn"
@@ -120,10 +125,13 @@ const selectToken = (token) => {
   opacity: 0.5;
 }
 .limit__upper-value {
+  width: clamp(29px, 19vw, 151px);
+  border: none;
   font-family: var(--font-family);
   font-weight: 400;
-  font-size: clamp(21px, 3vw, 30px);
+  font-size: clamp(29px, 3vw, 40px);
   color: #22212e;
+  align-items: start;
 }
 
 .limit__upper-btns {
@@ -251,5 +259,4 @@ const selectToken = (token) => {
   transform: translateX(-50%);
   z-index: 1;
 }
-
 </style>

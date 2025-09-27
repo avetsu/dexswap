@@ -3,7 +3,7 @@ import { ChevronRight } from 'lucide-vue-next';
 import AppBurgerMenu from '@/components/AppBurgerMenu.vue';
 import AppSideBar from '@/components/AppSidebar.vue';
 import { useCurrentPage } from '@/stores/PoolCurrentPage';
-import { useWallet, connectWallet, checkIfWalletIsConnected } from './blockchain/wallet';
+import { useWallet, connectWallet, checkIfWalletIsConnected } from '@/blockchain/wallet';
 import { ref, onMounted, onUnmounted, provide, computed } from 'vue';
 const defaultSvg = '/icons/site-logo.svg';
 const mobileSvg = '/icons/site-logo-mobile.svg';

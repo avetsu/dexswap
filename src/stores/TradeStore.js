@@ -8,13 +8,26 @@ export const useTradeStore = defineStore('TradeStore', () => {
     currentTab.value = tab;
   };
 
-  const tokenA = ref('0.00');
-  const tokenB = ref('0.00');
+  const tokenA = ref({ amount: 0, address: '', decimals: 0, symbol: '' });
+  const tokenB = ref({ amount: 0, address: '', decimals: 0, symbol: '' });
+  const tokenToSend = ref({ amount: 0, address: '', decimals: 0, symbol: '' });
+
+  const recipient = ref('');
+  const txState = ref(0);
+  const rate = ref(0);
+  const rateToCurrency = ref(0);
+  const feeToCurrency = ref(0);
 
   return {
     currentTab,
     switchTab,
     tokenA,
     tokenB,
+    txState,
+    rate,
+    rateToCurrency,
+    feeToCurrency,
+    tokenToSend,
+    recipient,
   };
 });

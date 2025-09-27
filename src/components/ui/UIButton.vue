@@ -4,11 +4,17 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  condition: { type: Boolean, required: true },
 });
 </script>
 
 <template>
-  <button :class="progress ? 'btn-in-process' : ''">
+  <button
+    :class="{
+      'btn-in-process': progress,
+      'btn-inactive': condition,
+    }"
+  >
     <template v-if="!progress">
       <slot />
     </template>
@@ -34,6 +40,11 @@ button:hover {
   opacity: 0.7;
 }
 
+.btn-inactive {
+  background: linear-gradient(360deg, #1c1c23 0%, #24242a 100%);
+  opacity: 0.5;
+  pointer-events: none;
+}
 
 .btn-in-process {
   background: linear-gradient(360deg, #1c1c23 0%, #24242a 100%);
