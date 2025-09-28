@@ -3,7 +3,7 @@ import AppModal from '@/components/AppModal.vue';
 import ModalTokens from '../modals/ModalTokens.vue';
 import UIButtonModal from '@/components/ui/UIButtonModal.vue';
 import { useTradeStore } from '@/stores/TradeStore';
-import { getQuote, getTokenBalance } from '@/blockchain/pools.js';
+import { multihopQuote, getTokenBalance } from '@/blockchain/pools.js';
 import { ethers } from 'ethers';
 import { ref, provide, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
@@ -33,14 +33,14 @@ provide('openModal', openModal);
 const selectedUpperToken = ref({
   name: 'USDC',
   symbol: 'USDC',
-  logo: 'https://etherscan.io/token/images/usdc_ofc_32.svg',
+  logoURI: 'https://etherscan.io/token/images/usdc_ofc_32.svg',
   address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
   decimals: 6,
 });
 const selectedBottomToken = ref({
   name: 'WETH',
   symbol: 'WETH',
-  logo: 'https://etherscan.io/token/images/weth_28.png?v=2',
+  logoURI: 'https://etherscan.io/token/images/weth_28.png?v=2',
   address: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14',
   decimals: 18,
 });
@@ -53,19 +53,12 @@ onMounted(async () => {
   if (selectedUpperToken.value.address === currency.value.address) {
     upperTokenBalanceToCurrency.value = upperTokenBalance.value;
   } else {
-    let op = await getQuote(
+    let op = await multihopQuote(
       selectedUpperToken.value.address,
       currency.value.address,
-      500,
-      ethers.utils.parseUnits(
-        upperTokenBalance.value.toString(),
-        selectedUpperToken.value.decimals,
-      ),
-      0,
+      upperTokenBalance.value.toString(),
     );
-    upperTokenBalanceToCurrency.value = parseFloat(
-      ethers.utils.formatUnits(op.amountOut, currency.value.decimals),
-    );
+    upperTokenBalanceToCurrency.value = op;
   }
 
   bottomTokenBalance.value = toReadableAmountWithDecimals(
@@ -75,46 +68,27 @@ onMounted(async () => {
   if (selectedBottomToken.value.address === currency.value.address) {
     bottomTokenBalanceToCurrency.value = bottomTokenBalance.value;
   } else {
-    let op = await getQuote(
+    let op = await multihopQuote(
       selectedBottomToken.value.address,
       currency.value.address,
-      500,
-      ethers.utils.parseUnits(
-        bottomTokenBalance.value.toString(),
-        selectedBottomToken.value.decimals,
-      ),
-      0,
+      bottomTokenBalance.value.toString(),
     );
-    bottomTokenBalanceToCurrency.value = parseFloat(
-      ethers.utils.formatUnits(op.amountOut, currency.value.decimals),
-    );
+    bottomTokenBalanceToCurrency.value = op;
   }
 
   if (selectedUpperToken.value.address !== selectedBottomToken.value.address) {
-    let op = await getQuote(
+    let op = await multihopQuote(
       selectedUpperToken.value.address,
       selectedBottomToken.value.address,
-      500,
-      ethers.utils.parseUnits('1', selectedUpperToken.value.decimals),
-      0,
+      '1',
     );
-    rate.value = parseFloat(
-      ethers.utils.formatUnits(op.amountOut, selectedBottomToken.value.decimals),
-    );
+    rate.value = op;
   } else {
     rate.value = 1;
   }
   if (selectedUpperToken.value.address !== currency.value.address) {
-    let op = await getQuote(
-      selectedUpperToken.value.address,
-      currency.value.address,
-      500,
-      ethers.utils.parseUnits('1', selectedUpperToken.value.decimals),
-      0,
-    );
-    rateToCurrency.value = parseFloat(
-      ethers.utils.formatUnits(op.amountOut, currency.value.decimals),
-    );
+    let op = await multihopQuote(selectedUpperToken.value.address, currency.value.address, '1');
+    rateToCurrency.value = op;
   } else {
     rateToCurrency.value = '1.00';
   }
@@ -129,13 +103,33 @@ onMounted(async () => {
 
 const selectToken = async (token) => {
   if (openModalFor.value === 'upper') {
-    selectedUpperToken.value = {
-      name: token.title,
-      symbol: token.symbol,
-      logo: token.logo,
-      address: token.address,
-      decimals: token.decimals,
-    };
+    if (token.address === selectedBottomToken.value.address) {
+      selectedBottomToken.value = selectedUpperToken.value;
+      selectedUpperToken.value = token;
+      bottomTokenBalance.value = toReadableAmountWithDecimals(
+        await getTokenBalance(selectedBottomToken.value.address),
+        selectedBottomToken.value.decimals,
+      );
+      if (selectedBottomToken.value.address === currency.value.address) {
+        bottomTokenBalanceToCurrency.value = bottomTokenBalance.value;
+      } else {
+        if (bottomTokenBalance.value.toString() === '0') {
+          bottomTokenBalanceToCurrency.value = '0.0';
+        } else {
+          let op = await multihopQuote(
+            selectedBottomToken.value.address,
+            currency.value.address,
+            bottomTokenBalance.value.toString(),
+          );
+          bottomTokenBalanceToCurrency.value = op;
+        }
+      }
+      tokenB.value.address = selectedBottomToken.value.address;
+      tokenB.value.decimals = selectedBottomToken.value.decimals;
+      tokenB.value.symbol = selectedBottomToken.value.symbol;
+    } else {
+      selectedUpperToken.value = token;
+    }
     upperTokenBalance.value = toReadableAmountWithDecimals(
       await getTokenBalance(selectedUpperToken.value.address),
       selectedUpperToken.value.decimals,
@@ -143,31 +137,55 @@ const selectToken = async (token) => {
     if (selectedUpperToken.value.address === currency.value.address) {
       upperTokenBalanceToCurrency.value = upperTokenBalance.value;
     } else {
-      let op = await getQuote(
-        selectedUpperToken.value.address,
-        currency.value.address,
-        500,
-        ethers.utils.parseUnits(
+      if (upperTokenBalance.value.toString() === '0') {
+        upperTokenBalanceToCurrency.value = '0.0';
+      } else {
+        let op = await multihopQuote(
+          selectedUpperToken.value.address,
+          currency.value.address,
           upperTokenBalance.value.toString(),
-          selectedUpperToken.value.decimals,
-        ),
-        0,
-      );
-      upperTokenBalanceToCurrency.value = parseFloat(
-        ethers.utils.formatUnits(op.amountOut, currency.value.decimals),
-      );
+        );
+        upperTokenBalanceToCurrency.value = op;
+      }
     }
     tokenA.value.address = selectedUpperToken.value.address;
     tokenA.value.decimals = selectedUpperToken.value.decimals;
     tokenA.value.symbol = selectedUpperToken.value.name;
   } else if (openModalFor.value === 'bottom') {
-    selectedBottomToken.value = {
-      name: token.title,
-      symbol: token.symbol,
-      logo: token.logo,
-      address: token.address,
-      decimals: token.decimals,
-    };
+    if (token.address === selectedUpperToken.value.address) {
+      selectedUpperToken.value = selectedBottomToken.value;
+      selectedBottomToken.value = token;
+      upperTokenBalance.value = toReadableAmountWithDecimals(
+        await getTokenBalance(selectedUpperToken.value.address),
+        selectedUpperToken.value.decimals,
+      );
+      if (selectedUpperToken.value.address === currency.value.address) {
+        upperTokenBalanceToCurrency.value = upperTokenBalance.value;
+      } else {
+        if (upperTokenBalance.value.toString() === '0') {
+          upperTokenBalanceToCurrency.value = '0.0';
+        } else {
+          let op = await multihopQuote(
+            selectedUpperToken.value.address,
+            currency.value.address,
+            upperTokenBalance.value.toString(),
+          );
+          upperTokenBalanceToCurrency.value = op;
+        }
+      }
+      let op = await multihopQuote(
+        selectedUpperToken.value.address,
+        currency.value.address,
+        upperTokenBalance.value.toString(),
+      );
+      upperTokenBalanceToCurrency.value = op;
+
+      tokenA.value.address = selectedUpperToken.value.address;
+      tokenA.value.decimals = selectedUpperToken.value.decimals;
+      tokenA.value.symbol = selectedUpperToken.value.name;
+    } else {
+      selectedBottomToken.value = token;
+    }
     bottomTokenBalance.value = toReadableAmountWithDecimals(
       await getTokenBalance(selectedBottomToken.value.address),
       selectedBottomToken.value.decimals,
@@ -175,53 +193,40 @@ const selectToken = async (token) => {
     if (selectedBottomToken.value.address === currency.value.address) {
       bottomTokenBalanceToCurrency.value = bottomTokenBalance.value;
     } else {
-      let op = await getQuote(
-        selectedBottomToken.value.address,
-        currency.value.address,
-        500,
-        ethers.utils.parseUnits(
+      if (bottomTokenBalance.value.toString() === '0') {
+        bottomTokenBalanceToCurrency.value = '0.0';
+      } else {
+        let op = await multihopQuote(
+          selectedBottomToken.value.address,
+          currency.value.address,
           bottomTokenBalance.value.toString(),
-          selectedBottomToken.value.decimals,
-        ),
-        0,
-      );
-      bottomTokenBalanceToCurrency.value = parseFloat(
-        ethers.utils.formatUnits(op.amountOut, currency.value.decimals),
-      );
+        );
+        bottomTokenBalanceToCurrency.value = op;
+      }
     }
     tokenB.value.address = selectedBottomToken.value.address;
     tokenB.value.decimals = selectedBottomToken.value.decimals;
     tokenB.value.symbol = selectedBottomToken.value.symbol;
   }
   if (selectedUpperToken.value.address !== selectedBottomToken.value.address) {
-    let op = await getQuote(
+    let op = await multihopQuote(
       selectedUpperToken.value.address,
       selectedBottomToken.value.address,
-      500,
-      ethers.utils.parseUnits('1', selectedUpperToken.value.decimals),
-      0,
+      '1',
     );
-    rate.value = parseFloat(
-      ethers.utils.formatUnits(op.amountOut, selectedBottomToken.value.decimals),
-    );
+    rate.value = op;
   } else {
     rate.value = 1;
   }
   if (selectedUpperToken.value.address !== currency.value.address) {
-    let op = await getQuote(
-      selectedUpperToken.value.address,
-      currency.value.address,
-      500,
-      ethers.utils.parseUnits('1', selectedUpperToken.value.decimals),
-      0,
-    );
-    rateToCurrency.value = parseFloat(
-      ethers.utils.formatUnits(op.amountOut, currency.value.decimals),
-    );
+    let op = await multihopQuote(selectedUpperToken.value.address, currency.value.address, '1');
+    rateToCurrency.value = op;
   } else {
     rateToCurrency.value = '1.00';
   }
   openModalFor.value = null;
+  tokenA.value.amount = 0;
+  tokenB.value.amount = 0;
 };
 
 async function onTokenAInput(e) {
@@ -242,31 +247,20 @@ async function onTokenAInput(e) {
   }
   tokenA.value.amount = filtered;
   if (selectedUpperToken.value.address !== selectedBottomToken.value.address) {
-    let op = await getQuote(
+    let op = await multihopQuote(
       selectedUpperToken.value.address,
       selectedBottomToken.value.address,
-      500,
-      ethers.utils.parseUnits(filtered, selectedUpperToken.value.decimals),
-      0,
+      filtered,
     );
-    tokenB.value.amount = parseFloat(
-      ethers.utils.formatUnits(op.amountOut, selectedBottomToken.value.decimals),
-    );
+    tokenB.value.amount = op;
   }
   if (selectedUpperToken.value.address !== currency.value.address) {
-    let feeEstimate = await getQuote(
+    let feeEstimate = await multihopQuote(
       selectedUpperToken.value.address,
       currency.value.address,
-      500,
-      ethers.utils.parseUnits(
-        trimDecimals(Number(filtered) * 0.05, selectedUpperToken.value.decimals).toString(),
-        selectedUpperToken.value.decimals,
-      ),
-      0,
+      trimDecimals(Number(filtered) * 0.05, selectedUpperToken.value.decimals),
     );
-    feeToCurrency.value = parseFloat(
-      ethers.utils.formatUnits(feeEstimate.amountOut, currency.value.decimals),
-    );
+    feeToCurrency.value = feeEstimate;
   } else {
     feeToCurrency.value = (Number(filtered) * 0.05).toString();
   }
@@ -289,31 +283,20 @@ async function onTokenBInput(e) {
   }
   tokenB.value.amount = filtered;
   if (selectedUpperToken.value.address !== selectedBottomToken.value.address) {
-    let op = await getQuote(
+    let op = await multihopQuote(
       selectedBottomToken.value.address,
       selectedUpperToken.value.address,
-      500,
-      ethers.utils.parseUnits(filtered, selectedBottomToken.value.decimals),
-      0,
+      filtered,
     );
-    tokenA.value.amount = parseFloat(
-      ethers.utils.formatUnits(op.amountOut, selectedUpperToken.value.decimals),
-    );
+    tokenA.value.amount = op;
   }
   if (selectedBottomToken.value.address !== currency.value.address) {
-    let feeEstimate = await getQuote(
+    let feeEstimate = await multihopQuote(
       selectedBottomToken.value.address,
       currency.value.address,
-      500,
-      ethers.utils.parseUnits(
-        trimDecimals(Number(filtered) * 0.05, selectedBottomToken.value.decimals).toString(),
-        selectedBottomToken.value.decimals,
-      ),
-      0,
+      trimDecimals(Number(filtered) * 0.05, selectedBottomToken.value.decimals),
     );
-    feeToCurrency.value = parseFloat(
-      ethers.utils.formatUnits(feeEstimate.amountOut, currency.value.decimals),
-    );
+    feeToCurrency.value = feeEstimate;
   } else {
     feeToCurrency.value = (Number(filtered) * 0.05).toString();
   }
@@ -420,8 +403,8 @@ async function onTokenBInput(e) {
 
       <UIButtonModal
         class="swop__tokens-btn"
-        :url="selectedUpperToken.logo"
-        :text="selectedUpperToken.name"
+        :url="selectedUpperToken.logoURI"
+        :text="selectedUpperToken.symbol"
         @click="
           openModalFor = 'upper';
           isModalOpen = true;
@@ -501,8 +484,8 @@ async function onTokenBInput(e) {
 
       <UIButtonModal
         class="swop__tokens-btn"
-        :url="selectedBottomToken.logo"
-        :text="selectedBottomToken.name"
+        :url="selectedBottomToken.logoURI"
+        :text="selectedBottomToken.symbol"
         @click="
           openModalFor = 'bottom';
           isModalOpen = true;

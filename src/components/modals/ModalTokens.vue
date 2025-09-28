@@ -2,7 +2,7 @@
 import { ethers } from 'ethers';
 import { ref, useId, onMounted } from 'vue';
 import tokensJson from '@/blockchain/tokens.json';
-import { getQuote, poolExists } from '@/blockchain/pools';
+import { multihopQuote, poolExists } from '@/blockchain/pools';
 
 const emit = defineEmits(['close', 'selectToken']);
 const selectToken = (token) => {
@@ -12,14 +12,8 @@ const selectToken = (token) => {
 const getDollarValue = async (token) => {
   let dollarvalue = 0;
   if (token.address !== '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238') {
-    let op = await getQuote(
-      token.address,
-      '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-      500,
-      ethers.utils.parseUnits('1', token.decimals),
-      0,
-    );
-    dollarvalue = parseFloat(ethers.utils.formatUnits(op.amountOut, 6));
+    let op = await multihopQuote(token.address, '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', '1');
+    dollarvalue = op;
   } else {
     dollarvalue = 1;
   }
@@ -45,91 +39,18 @@ onMounted(async () => {
       );
 
       if (!exists) return null;
-
+      const dollarvalue = Math.floor((await getDollarValue(token)) * 100) / 100;
       return {
         ...token,
         id: useId(),
-        dollars: await getDollarValue(token),
-        usdt: await getDollarValue(token),
+        dollars: dollarvalue,
+        usdt: dollarvalue,
       };
     }),
   );
 
-  // filter out nulls where pool didn’t exist
   tokens.value = enriched.filter(Boolean);
 });
-// import { ref, useId } from 'vue';
-
-// const emit = defineEmits(['close', 'selectToken']);
-// const selectToken = (token) => {
-//   emit('selectToken', token);
-//   emit('close');
-// };
-// const tokens = ref([
-//   {
-//     id: useId(),
-//     logo: '/icons/tether.svg',
-//     title: 'USDC',
-//     symbol: 'USDC',
-//     address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-//     decimals: 6,
-//     usdt: 3672.3172,
-//     dollars: 3672.59,
-//     isPinned: true,
-//   },
-//   {
-//     id: useId(),
-//     logo: '/icons/litecoin.svg',
-//     title: 'Litecoin LTC',
-//     usdt: 3672.3172,
-//     dollars: 1799.59,
-//     isPinned: true,
-//   },
-//   {
-//     id: useId(),
-//     logo: '/icons/binance.svg',
-//     title: 'Binance Coin BNB',
-//     symbol: 'BNB',
-//     usdt: 472.3172,
-//     dollars: 599.59,
-//     isPinned: false,
-//   },
-//   {
-//     id: useId(),
-//     logo: '/icons/bitcoin-1.svg',
-//     title: 'WETH',
-//     symbol: 'WETH',
-//     address: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14',
-//     decimals: 18,
-//     usdt: 472.3172,
-//     dollars: 939.59,
-//     isPinned: false,
-//   },
-//   {
-//     id: useId(),
-//     logo: '/icons/bitcoin-2.svg',
-//     title: 'Bitcoin BTC',
-//     usdt: 472.3172,
-//     dollars: 80.59,
-//     isPinned: true,
-//   },
-//   {
-//     id: useId(),
-//     logo: './icons/bitcoin-2.svg',
-//     title: 'Bitcoin BTC',
-//     usdt: 472.3172,
-//     dollars: 80.59,
-//     isPinned: true,
-//   },
-//   {
-//     id: useId(),
-//     logo: './icons/bitcoin-2.svg',
-//     title: 'Bitcoin BTC',
-//     usdt: 472.3172,
-//     dollars: 80.59,
-//     isPinned: false,
-//   },
-// ]);
 </script>
 
 <template>

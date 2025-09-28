@@ -5,7 +5,7 @@ import TradeSwopCards from '@/components/trade/TradeCards.vue';
 import UIButton from '@/components/ui/UIButton.vue';
 import TradeDropdown from '@/components/trade/swop/TradeDropdown.vue';
 import TradeInProcess from '@/components/trade/swop/TradeInProcess.vue';
-import { swapTokens, SWAP_ROUTER02_ADDRESS, approveTokens } from '@/blockchain/pools';
+import { multihopSwap, SWAP_ROUTER02_ADDRESS, approveTokens } from '@/blockchain/pools';
 import { useTradeStore } from '@/stores/TradeStore';
 import { trimDecimals } from '@/blockchain/functions';
 import { storeToRefs } from 'pinia';
@@ -38,17 +38,10 @@ const convert = async () => {
   await new Promise((resolve) => setTimeout(resolve, 500));
   txState.value = 2;
   try {
-    tx_swap.value = await swapTokens(
+    tx_swap.value = await multihopSwap(
       tokenA.value.address,
       tokenB.value.address,
-      ethers.utils.parseUnits(tokenA.value.amount, tokenA.value.decimals),
-      500,
-      0.001,
-      Math.floor(Date.now() / 1000) + 60 * 10,
-      ethers.utils.parseUnits(
-        trimDecimals(tokenB.value.amount * 0.98, tokenB.value.decimals).toString(),
-        tokenB.value.decimals,
-      ),
+      tokenA.value.amount,
     );
   } catch (error) {
     txState.value = 10;
