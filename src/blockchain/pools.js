@@ -1,5 +1,6 @@
-import { ethers } from 'ethers';
-import { Token } from '@uniswap/sdk-core';
+import { ethers, BigNumber } from 'ethers';
+import { Token, CurrencyAmount, TradeType, Percent } from '@uniswap/sdk-core';
+import { AlphaRouter } from '@uniswap/smart-order-router';
 import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json';
 import InonfungiblePositionManagerABI from '@uniswap/v3-periphery/artifacts/contracts/NonfungiblePositionManager.sol/NonfungiblePositionManager.json';
 import QuoterV2 from '@uniswap/v3-periphery/artifacts/contracts/lens/QuoterV2.sol/QuoterV2.json';
@@ -12,6 +13,7 @@ export const NFPM_ADDRESS = '0x1238536071E1c677A632429e3655c799b22cDA52';
 export const SWAP_ROUTER02_ADDRESS = '0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E';
 const Factory_ADDRESS = '0x0227628f3F023bb0B980b67D528571c95c6DaC1c';
 const QuoterV2_ADDRESS = '0xed1f6473345f45b75f8179591dd5ba1888cf2fb3';
+const V3_SWAP_ROUTER_ADDRESS = '0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E';
 
 const chainID = 11155111;
 
@@ -202,7 +204,55 @@ export async function aT(tokenAddress, logoUrl) {
     logoURI: 'ogol',
   };
 
-  // Just return JSON instead of writing to file
   console.log(JSON.stringify(newToken, null, 2));
   return newToken;
+}
+const SwapType = {
+  UNIVERSAL_ROUTER: 0,
+  SWAP_ROUTER_02: 1,
+};
+
+export async function multihopQuote(tokenA, tokenB, amount) {
+  const { provider, account } = useWallet();
+  const router = new AlphaRouter({ chainId: 11155111, provider: provider });
+  const tokenIn = await getToken(tokenA);
+  const tokenOut = await getToken(tokenB);
+  const wei = ethers.utils.parseUnits(amount, tokenIn.decimals);
+  const inputAmount = CurrencyAmount.fromRawAmount(tokenIn, wei);
+  const route = await router.route(inputAmount, tokenOut, TradeType.EXACT_INPUT, {
+    type: SwapType.SWAP_ROUTER_02,
+    recipient: account.value,
+    slippageTolerance: new Percent(25, 100),
+    deadline: Math.floor(Date.now() / 1000 + 1800),
+  });
+
+  return route.quote.toFixed(6);
+}
+
+export async function multihopSwap(tokenA, tokenB, amount) {
+  const { provider, account, signer } = useWallet();
+  const router = new AlphaRouter({ chainId: 11155111, provider: provider });
+  const tokenIn = await getToken(tokenA);
+  const tokenOut = await getToken(tokenB);
+  const wei = ethers.utils.parseUnits(amount, tokenIn.decimals);
+  const inputAmount = CurrencyAmount.fromRawAmount(tokenIn, wei);
+  const route = await router.route(inputAmount, tokenOut, TradeType.EXACT_INPUT, {
+    type: SwapType.SWAP_ROUTER_02,
+    recipient: account.value,
+    slippageTolerance: new Percent(50, 10_000),
+    deadline: Math.floor(Date.now() / 1000 + 1800),
+  });
+  console.log('route:', route);
+  const transaction = {
+    data: route.methodParameters.calldata,
+    to: V3_SWAP_ROUTER_ADDRESS,
+    value: BigNumber.from(route.methodParameters.value),
+    from: account.value,
+    gasPrice: BigNumber.from(route.gasPriceWei),
+    gasLimit: ethers.utils.hexlify(1000000),
+  };
+  console.log('Transaction:', transaction);
+  const tradeTransaction = await signer.sendTransaction(transaction);
+  await tradeTransaction.wait();
+  return tradeTransaction;
 }
