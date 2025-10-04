@@ -16,8 +16,8 @@ defineProps({
     <span>{{ text || 'USDT' }}</span>
 
     <svg width="7" height="6" viewBox="0 0 7 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path opacity="0.5" d="M3.5 6L0.468912 0.749999L6.53109 0.75L3.5 6Z" fill="#22212E" />
-</svg>
+      <path opacity="0.5" d="M3.5 6L0.468912 0.749999L6.53109 0.75L3.5 6Z" fill="#22212E" />
+    </svg>
   </button>
 </template>
 
@@ -35,8 +35,8 @@ button {
   z-index: 3;
 }
 button img {
-  width: 25px;
   height: 25px;
+  width: auto;
 }
 button span {
   font-family: var(--font-family);

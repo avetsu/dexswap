@@ -8,30 +8,32 @@ const { feeToCurrency } = storeToRefs(tradeStore);
 </script>
 
 <template>
-  <ul class="dropdown__list">
-    <li class="dropdown__item">
-      <span class="dropdown__item-name">Fee (0,50%)</span>
-      <span class="dropdown__item-value"
-        ><strong>{{ (Math.floor(feeToCurrency * 10 ** 2) / 10 ** 2).toFixed(2) }} $</strong></span
-      >
-    </li>
-    <li class="dropdown__item">
-      <span class="dropdown__item-name">Network cost</span>
-      <span class="dropdown__item-value">&lt; 0,1$</span>
-    </li>
-    <li class="dropdown__item">
-      <span class="dropdown__item-name">Order routing</span>
-      <span class="dropdown__item-value"><strong>X1 Blockchain API</strong></span>
-    </li>
-    <li class="dropdown__item">
-      <span class="dropdown__item-name">Impact on price</span>
-      <span class="dropdown__item-value">-0,779%</span>
-    </li>
-    <li class="dropdown__item">
-      <span class="dropdown__item-name">Max. slippage</span>
-      <span class="dropdown__item-value"><strong>2,5%</strong></span>
-    </li>
-  </ul>
+  <div>
+    <ul class="dropdown__list">
+      <li class="dropdown__item">
+        <span class="dropdown__item-name">Fee (0,50%)</span>
+        <span class="dropdown__item-value"
+          ><strong>{{ (Math.floor(feeToCurrency * 10 ** 2) / 10 ** 2).toFixed(2) }} $</strong></span
+        >
+      </li>
+      <li class="dropdown__item">
+        <span class="dropdown__item-name">Network cost</span>
+        <span class="dropdown__item-value">&lt; 0,1$</span>
+      </li>
+      <li class="dropdown__item">
+        <span class="dropdown__item-name">Order routing</span>
+        <span class="dropdown__item-value"><strong>X1 Blockchain API</strong></span>
+      </li>
+      <li class="dropdown__item">
+        <span class="dropdown__item-name">Impact on price</span>
+        <span class="dropdown__item-value">-0,779%</span>
+      </li>
+      <li class="dropdown__item">
+        <span class="dropdown__item-name">Max. slippage</span>
+        <span class="dropdown__item-value"><strong>2,5%</strong></span>
+      </li>
+    </ul>
+  </div>
 </template>
 
 <style>

@@ -3,25 +3,33 @@ import { ChevronRight } from 'lucide-vue-next';
 import AppBurgerMenu from '@/components/AppBurgerMenu.vue';
 import AppSideBar from '@/components/AppSidebar.vue';
 import { useCurrentPage } from '@/stores/PoolCurrentPage';
-import { useWallet, connectWallet, checkIfWalletIsConnected } from '@/blockchain/wallet';
-import { ref, onMounted, onUnmounted, provide, computed } from 'vue';
+import { useTradeStore } from '@/stores/TradeStore';
+import { useWallet, connectWallet } from '@/blockchain/wallet';
+import { ref, onMounted, onUnmounted, provide, computed, watch } from 'vue';
+import { useAppKit } from '@reown/appkit/vue';
+import { AppKitAccount } from '@/blockchain/wallet';
+import { storeToRefs } from 'pinia';
+
 const defaultSvg = '/icons/site-logo.svg';
 const mobileSvg = '/icons/site-logo-mobile.svg';
 
 const currentLogo = ref(defaultSvg);
 
 const currentPage = useCurrentPage();
+const tradeStore = useTradeStore();
 
-const { account } = useWallet();
+const { refresh } = storeToRefs(tradeStore);
+
+const { open } = useAppKit();
 
 function checkWidth() {
   currentLogo.value = window.innerWidth <= 888 ? mobileSvg : defaultSvg;
 }
 
-onMounted(() => {
+onMounted(async () => {
   checkWidth();
   window.addEventListener('resize', checkWidth);
-  checkIfWalletIsConnected();
+  connectWallet();
 });
 onUnmounted(() => {
   window.removeEventListener('resize', checkWidth);
@@ -34,12 +42,25 @@ const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value;
 };
 
-const computedAddress = computed(
-  () => account.value.substring(0, 3) + '...' + account.value.substring(account.value.length - 5),
-);
+const computedAddress = computed(() => {
+  const addr = AppKitAccount.value?.address;
+  if (!addr) return ''; // return empty string (or something like "Not connected")
+  return addr.substring(0, 6) + '...' + addr.substring(addr.length - 4);
+});
 
 provide('isSidebarOpen', isSidebarOpen);
 provide('toggleSidebar', toggleSidebar);
+
+watch(
+  () => AppKitAccount?.value?.isConnected,
+  async (isConnected) => {
+    if (isConnected) {
+      refresh.value = true;
+    } else {
+      console.log('❌ Wallet disconnected');
+    }
+  },
+);
 </script>
 
 <template>
@@ -84,8 +105,8 @@ provide('toggleSidebar', toggleSidebar);
         </label>
       </form>
 
-      <div v-if="!account" class="header__account">
-        <button class="connect__button" @click="connectWallet">
+      <div v-if="!AppKitAccount?.isConnected" class="header__account">
+        <button class="connect__button" @click="open()">
           Connect{{}}<ChevronRight size="15" />
         </button>
       </div>

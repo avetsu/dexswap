@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import UIButtonModal from '@/components/ui/UIButtonModal.vue';
 import AppModal from '@/components/AppModal.vue';
 import ModalTokens from '@/components/modals/ModalTokens.vue';
-import { getTokenBalance, getQuote } from '@/blockchain/pools';
+import { getTokenBalance, multihopQuote } from '@/blockchain/pools';
 import { toReadableAmountWithDecimals, toFixedFloor } from '@/blockchain/functions';
 import { ref, provide, onMounted } from 'vue';
 import { useTradeStore } from '@/stores/TradeStore';
@@ -26,8 +26,9 @@ const tokenBalanceToCurrency = ref(0);
 const currency = ref({ address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', decimals: 6 });
 
 const selectedToken = ref({
-  name: 'USDT',
-  logo: '/icons/tether-small.svg',
+  name: 'USDC',
+  symbol: 'USDC',
+  logoURI: 'https://etherscan.io/token/images/usdc_ofc_32.svg',
   address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
   decimals: 6,
 });
@@ -47,26 +48,21 @@ async function getBalance() {
   if (selectedToken.value.address === currency.value.address) {
     tokenBalanceToCurrency.value = tokenBalance.value;
   } else {
-    let op = await getQuote(
-      selectedToken.value.address,
-      currency.value.address,
-      500,
-      ethers.utils.parseUnits(tokenBalance.value.toString(), selectedToken.value.decimals),
-      0,
-    );
-    tokenBalanceToCurrency.value = parseFloat(
-      ethers.utils.formatUnits(op.amountOut, currency.value.decimals),
-    );
+    if (tokenBalance.value.toString() === '0') {
+      tokenBalanceToCurrency.value = '0.0';
+    } else {
+      let op = await multihopQuote(
+        selectedToken.value.address,
+        currency.value.address,
+        tokenBalance.value.toString(),
+      );
+      tokenBalanceToCurrency.value = op;
+    }
   }
 }
 
 const selectToken = async (token) => {
-  selectedToken.value = {
-    name: token.title,
-    logo: token.logo,
-    address: token.address,
-    decimals: token.decimals,
-  };
+  selectedToken.value = token;
   openModalFor.value = null;
   tokenToSend.value = selectedToken.value;
   tokenToSend.value.amount = 0;
@@ -159,8 +155,8 @@ function onTokenInput(e) {
     </div>
     <UIButtonModal
       class="send__card-btn"
-      :url="selectedToken.logo"
-      :text="selectedToken.name"
+      :url="selectedToken.logoURI"
+      :text="selectedToken.symbol"
       @click="openModal"
     />
     <div class="send__card-cut">
