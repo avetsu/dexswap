@@ -3,16 +3,16 @@ import AppModal from '@/components/AppModal.vue';
 import ModalTokens from '../modals/ModalTokens.vue';
 import UIButtonModal from '@/components/ui/UIButtonModal.vue';
 import { useTradeStore } from '@/stores/TradeStore';
-import { multihopQuote, getTokenBalance } from '@/blockchain/pools.js';
-import { ethers } from 'ethers';
-import { ref, provide, onMounted } from 'vue';
+import { multihopQuote, getTokenBalance, getNativeBalance } from '@/blockchain/pools.js';
+import { ref, provide, onMounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { toReadableAmountWithDecimals, toFixedFloor } from '@/blockchain/functions';
 import { trimDecimals } from '@/blockchain/functions';
+import Tokens from '@/blockchain/tokens.json';
 
 const tradeStore = useTradeStore();
 
-const { tokenA, tokenB, rate, rateToCurrency, feeToCurrency } = storeToRefs(tradeStore);
+const { tokenA, tokenB, rate, rateToCurrency, feeToCurrency, refresh } = storeToRefs(tradeStore);
 
 const isModalOpen = ref(false);
 const openModalFor = ref(null);
@@ -30,20 +30,72 @@ const closeModal = () => (isModalOpen.value = false);
 
 provide('openModal', openModal);
 
-const selectedUpperToken = ref({
-  name: 'USDC',
-  symbol: 'USDC',
-  logoURI: 'https://etherscan.io/token/images/usdc_ofc_32.svg',
-  address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-  decimals: 6,
-});
-const selectedBottomToken = ref({
-  name: 'WETH',
-  symbol: 'WETH',
-  logoURI: 'https://etherscan.io/token/images/weth_28.png?v=2',
-  address: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14',
-  decimals: 18,
-});
+const selectedUpperToken = ref(Tokens[0]);
+const selectedBottomToken = ref(Tokens[1]);
+
+watch(
+  () => refresh.value,
+  async (newVal) => {
+    if (newVal === true) {
+      console.log('Refresh triggered!');
+
+      upperTokenBalance.value = toReadableAmountWithDecimals(
+        await getTokenBalance(selectedUpperToken.value.address),
+        selectedUpperToken.value.decimals,
+      );
+      if (selectedUpperToken.value.address === currency.value.address) {
+        upperTokenBalanceToCurrency.value = upperTokenBalance.value;
+      } else {
+        let op = await multihopQuote(
+          selectedUpperToken.value.address,
+          currency.value.address,
+          upperTokenBalance.value.toString(),
+        );
+        upperTokenBalanceToCurrency.value = op;
+      }
+
+      bottomTokenBalance.value = toReadableAmountWithDecimals(
+        await getTokenBalance(selectedBottomToken.value.address),
+        selectedBottomToken.value.decimals,
+      );
+      if (selectedBottomToken.value.address === currency.value.address) {
+        bottomTokenBalanceToCurrency.value = bottomTokenBalance.value;
+      } else {
+        let op = await multihopQuote(
+          selectedBottomToken.value.address,
+          currency.value.address,
+          bottomTokenBalance.value.toString(),
+        );
+        bottomTokenBalanceToCurrency.value = op;
+      }
+
+      if (selectedUpperToken.value.address !== selectedBottomToken.value.address) {
+        let op = await multihopQuote(
+          selectedUpperToken.value.address,
+          selectedBottomToken.value.address,
+          '1',
+        );
+        rate.value = op;
+      } else {
+        rate.value = 1;
+      }
+      if (selectedUpperToken.value.address !== currency.value.address) {
+        let op = await multihopQuote(selectedUpperToken.value.address, currency.value.address, '1');
+        rateToCurrency.value = op;
+      } else {
+        rateToCurrency.value = '1.00';
+      }
+
+      tokenA.value.address = selectedUpperToken.value.address;
+      tokenA.value.decimals = selectedUpperToken.value.decimals;
+      tokenA.value.symbol = selectedUpperToken.value.symbol;
+      tokenB.value.address = selectedBottomToken.value.address;
+      tokenB.value.decimals = selectedBottomToken.value.decimals;
+      tokenB.value.symbol = selectedBottomToken.value.symbol;
+      refresh.value = false;
+    }
+  },
+);
 
 onMounted(async () => {
   upperTokenBalance.value = toReadableAmountWithDecimals(
@@ -106,10 +158,19 @@ const selectToken = async (token) => {
     if (token.address === selectedBottomToken.value.address) {
       selectedBottomToken.value = selectedUpperToken.value;
       selectedUpperToken.value = token;
-      bottomTokenBalance.value = toReadableAmountWithDecimals(
-        await getTokenBalance(selectedBottomToken.value.address),
-        selectedBottomToken.value.decimals,
-      );
+      if (selectedBottomToken.value.symbol === 'ETH') {
+        console.log('native');
+        bottomTokenBalance.value = toReadableAmountWithDecimals(
+          await getNativeBalance(),
+          selectedBottomToken.value.decimals,
+        );
+      } else {
+        console.log('nonative', selectedUpperToken.value.symbol);
+        bottomTokenBalance.value = toReadableAmountWithDecimals(
+          await getTokenBalance(selectedBottomToken.value.address),
+          selectedBottomToken.value.decimals,
+        );
+      }
       if (selectedBottomToken.value.address === currency.value.address) {
         bottomTokenBalanceToCurrency.value = bottomTokenBalance.value;
       } else {
@@ -127,13 +188,28 @@ const selectToken = async (token) => {
       tokenB.value.address = selectedBottomToken.value.address;
       tokenB.value.decimals = selectedBottomToken.value.decimals;
       tokenB.value.symbol = selectedBottomToken.value.symbol;
+
+      let amount = tokenA.value.amount;
+      tokenA.value.amount = tokenB.value.amount;
+      tokenB.value.amount = amount;
     } else {
       selectedUpperToken.value = token;
+      tokenA.value.amount = 0;
+      tokenB.value.amount = 0;
     }
-    upperTokenBalance.value = toReadableAmountWithDecimals(
-      await getTokenBalance(selectedUpperToken.value.address),
-      selectedUpperToken.value.decimals,
-    );
+    if (selectedUpperToken.value.symbol === 'ETH') {
+      console.log('native');
+      upperTokenBalance.value = toReadableAmountWithDecimals(
+        await getNativeBalance(),
+        selectedUpperToken.value.decimals,
+      );
+    } else {
+      console.log('nonative', selectedUpperToken.value.symbol);
+      upperTokenBalance.value = toReadableAmountWithDecimals(
+        await getTokenBalance(selectedUpperToken.value.address),
+        selectedUpperToken.value.decimals,
+      );
+    }
     if (selectedUpperToken.value.address === currency.value.address) {
       upperTokenBalanceToCurrency.value = upperTokenBalance.value;
     } else {
@@ -152,19 +228,36 @@ const selectToken = async (token) => {
     tokenA.value.decimals = selectedUpperToken.value.decimals;
     tokenA.value.symbol = selectedUpperToken.value.name;
   } else if (openModalFor.value === 'bottom') {
+    console.log('a');
     if (token.address === selectedUpperToken.value.address) {
+      console.log('B');
       selectedUpperToken.value = selectedBottomToken.value;
       selectedBottomToken.value = token;
-      upperTokenBalance.value = toReadableAmountWithDecimals(
-        await getTokenBalance(selectedUpperToken.value.address),
-        selectedUpperToken.value.decimals,
-      );
+      if (selectedUpperToken.value.symbol === 'ETH') {
+        console.log('native');
+        upperTokenBalance.value = toReadableAmountWithDecimals(
+          await getNativeBalance(),
+          selectedUpperToken.value.decimals,
+        );
+      } else {
+        console.log('nonative', selectedUpperToken.value.symbol);
+        upperTokenBalance.value = toReadableAmountWithDecimals(
+          await getTokenBalance(selectedUpperToken.value.address),
+          selectedUpperToken.value.decimals,
+        );
+      }
       if (selectedUpperToken.value.address === currency.value.address) {
         upperTokenBalanceToCurrency.value = upperTokenBalance.value;
       } else {
         if (upperTokenBalance.value.toString() === '0') {
           upperTokenBalanceToCurrency.value = '0.0';
         } else {
+          console.log(
+            'valas',
+            selectedUpperToken.value.address,
+            currency.value.address,
+            upperTokenBalance.value.toString(),
+          );
           let op = await multihopQuote(
             selectedUpperToken.value.address,
             currency.value.address,
@@ -173,23 +266,34 @@ const selectToken = async (token) => {
           upperTokenBalanceToCurrency.value = op;
         }
       }
-      let op = await multihopQuote(
-        selectedUpperToken.value.address,
-        currency.value.address,
-        upperTokenBalance.value.toString(),
-      );
-      upperTokenBalanceToCurrency.value = op;
 
+      console.log('selectedBottomToken', selectedBottomToken.value);
+      console.log('selectedUpperToken', selectedUpperToken.value);
       tokenA.value.address = selectedUpperToken.value.address;
       tokenA.value.decimals = selectedUpperToken.value.decimals;
       tokenA.value.symbol = selectedUpperToken.value.name;
+
+      let amount = tokenA.value.amount;
+      tokenA.value.amount = tokenB.value.amount;
+      tokenB.value.amount = amount;
     } else {
       selectedBottomToken.value = token;
+      tokenA.value.amount = 0;
+      tokenB.value.amount = 0;
     }
-    bottomTokenBalance.value = toReadableAmountWithDecimals(
-      await getTokenBalance(selectedBottomToken.value.address),
-      selectedBottomToken.value.decimals,
-    );
+    if (selectedBottomToken.value.symbol === 'ETH') {
+      console.log('native');
+      bottomTokenBalance.value = toReadableAmountWithDecimals(
+        await getNativeBalance(),
+        selectedBottomToken.value.decimals,
+      );
+    } else {
+      console.log('nonative', selectedUpperToken.value.symbol);
+      bottomTokenBalance.value = toReadableAmountWithDecimals(
+        await getTokenBalance(selectedBottomToken.value.address),
+        selectedBottomToken.value.decimals,
+      );
+    }
     if (selectedBottomToken.value.address === currency.value.address) {
       bottomTokenBalanceToCurrency.value = bottomTokenBalance.value;
     } else {
@@ -209,6 +313,7 @@ const selectToken = async (token) => {
     tokenB.value.symbol = selectedBottomToken.value.symbol;
   }
   if (selectedUpperToken.value.address !== selectedBottomToken.value.address) {
+    console.log('valasc', selectedUpperToken.value.address, selectedBottomToken.value.address, '1');
     let op = await multihopQuote(
       selectedUpperToken.value.address,
       selectedBottomToken.value.address,
@@ -225,8 +330,6 @@ const selectToken = async (token) => {
     rateToCurrency.value = '1.00';
   }
   openModalFor.value = null;
-  tokenA.value.amount = 0;
-  tokenB.value.amount = 0;
 };
 
 async function onTokenAInput(e) {
@@ -258,11 +361,11 @@ async function onTokenAInput(e) {
     let feeEstimate = await multihopQuote(
       selectedUpperToken.value.address,
       currency.value.address,
-      trimDecimals(Number(filtered) * 0.05, selectedUpperToken.value.decimals),
+      trimDecimals(Number(filtered) * 0.005, selectedUpperToken.value.decimals),
     );
     feeToCurrency.value = feeEstimate;
   } else {
-    feeToCurrency.value = (Number(filtered) * 0.05).toString();
+    feeToCurrency.value = (Number(filtered) * 0.005).toString();
   }
 }
 
@@ -294,12 +397,83 @@ async function onTokenBInput(e) {
     let feeEstimate = await multihopQuote(
       selectedBottomToken.value.address,
       currency.value.address,
-      trimDecimals(Number(filtered) * 0.05, selectedBottomToken.value.decimals),
+      trimDecimals(Number(filtered) * 0.005, selectedBottomToken.value.decimals),
     );
     feeToCurrency.value = feeEstimate;
   } else {
-    feeToCurrency.value = (Number(filtered) * 0.05).toString();
+    feeToCurrency.value = (Number(filtered) * 0.005).toString();
   }
+}
+
+async function switchTokens() {
+  let temp = selectedBottomToken.value;
+  selectedBottomToken.value = selectedUpperToken.value;
+  selectedUpperToken.value = temp;
+  if (selectedBottomToken.value.symbol === 'ETH') {
+    console.log('native');
+    bottomTokenBalance.value = toReadableAmountWithDecimals(
+      await getNativeBalance(),
+      selectedBottomToken.value.decimals,
+    );
+  } else {
+    console.log('nonative', selectedUpperToken.value.symbol);
+    bottomTokenBalance.value = toReadableAmountWithDecimals(
+      await getTokenBalance(selectedBottomToken.value.address),
+      selectedBottomToken.value.decimals,
+    );
+  }
+  if (selectedBottomToken.value.address === currency.value.address) {
+    bottomTokenBalanceToCurrency.value = bottomTokenBalance.value;
+  } else {
+    if (bottomTokenBalance.value.toString() === '0') {
+      bottomTokenBalanceToCurrency.value = '0.0';
+    } else {
+      let op = await multihopQuote(
+        selectedBottomToken.value.address,
+        currency.value.address,
+        bottomTokenBalance.value.toString(),
+      );
+      bottomTokenBalanceToCurrency.value = op;
+    }
+  }
+  if (selectedUpperToken.value.symbol === 'ETH') {
+    console.log('native');
+    upperTokenBalance.value = toReadableAmountWithDecimals(
+      await getNativeBalance(),
+      selectedUpperToken.value.decimals,
+    );
+  } else {
+    console.log('nonative', selectedUpperToken.value.symbol);
+    upperTokenBalance.value = toReadableAmountWithDecimals(
+      await getTokenBalance(selectedUpperToken.value.address),
+      selectedUpperToken.value.decimals,
+    );
+  }
+  if (selectedUpperToken.value.address === currency.value.address) {
+    upperTokenBalanceToCurrency.value = upperTokenBalance.value;
+  } else {
+    if (upperTokenBalance.value.toString() === '0') {
+      upperTokenBalanceToCurrency.value = '0.0';
+    } else {
+      let op = await multihopQuote(
+        selectedUpperToken.value.address,
+        currency.value.address,
+        upperTokenBalance.value.toString(),
+      );
+      upperTokenBalanceToCurrency.value = op;
+    }
+  }
+  console.log('selectedBottomToken', selectedBottomToken.value);
+  console.log('selectedUpperToken', selectedUpperToken.value);
+  tokenA.value.address = selectedUpperToken.value.address;
+  tokenA.value.decimals = selectedUpperToken.value.decimals;
+  tokenA.value.symbol = selectedUpperToken.value.symbol;
+  tokenB.value.address = selectedBottomToken.value.address;
+  tokenB.value.decimals = selectedBottomToken.value.decimals;
+  tokenB.value.symbol = selectedBottomToken.value.symbol;
+  let amount = tokenA.value.amount;
+  tokenA.value.amount = tokenB.value.amount;
+  tokenB.value.amount = amount;
 }
 </script>
 
@@ -389,6 +563,7 @@ async function onTokenBInput(e) {
             viewBox="0 0 14 18"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
+            @click="switchTokens"
           >
             <path
               d="M7 1V17M7 17L13 11M7 17L1 11"
@@ -529,6 +704,7 @@ async function onTokenBInput(e) {
   z-index: 4;
   border-bottom-left-radius: 24px;
   border-bottom-right-radius: 24px;
+  cursor: pointer;
 }
 .swop__arrow-angle-left {
   height: 21px;

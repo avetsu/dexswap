@@ -8,6 +8,7 @@ import AppModal from '@/components/AppModal.vue';
 import { disconnectWallet } from '@/blockchain/wallet';
 import { inject } from 'vue';
 import ModalQr from './modals/ModalQr.vue';
+import { useDisconnect, useAppKitAccount, useAppKitProvider } from '@reown/appkit/vue';
 
 const isModalOpen = ref(false);
 
@@ -19,8 +20,20 @@ provide('openModal', openModal);
 const isSidebarOpen = inject('isSidebarOpen');
 const toggleSidebar = inject('toggleSidebar');
 
-function toggleDisconnect() {
-  disconnectWallet();
+const { disconnect } = useDisconnect();
+// const AppKitAccount = useAppKitAccount();
+// const walletProvider = useAppKitProvider('eip155');
+
+async function toggleDisconnect() {
+  try {
+    await disconnect();
+    // AppKitAccount.value = null;
+    // walletProvider.value = null;
+    disconnectWallet();
+    console.log('disconnect');
+  } catch (error) {
+    console.error('Error during disconnect:', error);
+  }
   toggleSidebar();
 }
 

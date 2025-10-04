@@ -7,13 +7,15 @@ import QuoterV2 from '@uniswap/v3-periphery/artifacts/contracts/lens/QuoterV2.so
 import SwapRouter_ABI from './SWAP_ROUTER_ABI.json';
 import ERC20_ABI from './ERC20_ABI.json';
 import FactoryABI from './FACTORY_ABI.json';
+import WETHABI from './WETH_ABI.json';
 import { useWallet } from './wallet';
+import Addresses from './Addresses.json';
 
-export const NFPM_ADDRESS = '0x1238536071E1c677A632429e3655c799b22cDA52';
-export const SWAP_ROUTER02_ADDRESS = '0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E';
-const Factory_ADDRESS = '0x0227628f3F023bb0B980b67D528571c95c6DaC1c';
-const QuoterV2_ADDRESS = '0xed1f6473345f45b75f8179591dd5ba1888cf2fb3';
-const V3_SWAP_ROUTER_ADDRESS = '0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E';
+export const NFPM_ADDRESS = Addresses.NFPM_ADDRESS;
+export const SWAP_ROUTER02_ADDRESS = Addresses.SWAP_ROUTER02_ADDRESS;
+const Factory_ADDRESS = Addresses.Factory_ADDRESS;
+const QuoterV2_ADDRESS = Addresses.QuoterV2_ADDRESS;
+const V3_SWAP_ROUTER_ADDRESS = Addresses.V3_SWAP_ROUTER_ADDRESS;
 
 const chainID = 11155111;
 
@@ -25,6 +27,7 @@ export async function approveTokens(tokenAddress, spender, amount) {
   const { signer } = useWallet();
   const token = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
   const tx = await token.approve(spender, amount);
+  console.log('a', tokenAddress);
   await tx.wait();
 }
 
@@ -73,6 +76,7 @@ export async function getQuote(tokenIn, tokenOut, fee, amountIn, sqrtPriceLimitX
 
 export async function getToken(tokenAddress) {
   const { provider } = useWallet();
+  console.log('provider', provider);
   const token = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
   const symbol = await token.symbol();
   const decimals = await token.decimals();
@@ -83,6 +87,8 @@ export async function getToken(tokenAddress) {
 
 export async function getTokenBalance(tokenAddress) {
   const { provider, account } = useWallet();
+  console.log('account', account.value);
+  console.log('provider', provider);
   const token = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
   const balance = await token.balanceOf(account.value);
   return balance;
@@ -213,16 +219,18 @@ const SwapType = {
 };
 
 export async function multihopQuote(tokenA, tokenB, amount) {
+  if (amount == '0') return 0;
   const { provider, account } = useWallet();
   const router = new AlphaRouter({ chainId: 11155111, provider: provider });
   const tokenIn = await getToken(tokenA);
   const tokenOut = await getToken(tokenB);
-  const wei = ethers.utils.parseUnits(amount, tokenIn.decimals);
+  console.log('quoting', amount.toString(), tokenIn.decimals);
+  const wei = ethers.utils.parseUnits(amount.toString(), tokenIn.decimals);
   const inputAmount = CurrencyAmount.fromRawAmount(tokenIn, wei);
   const route = await router.route(inputAmount, tokenOut, TradeType.EXACT_INPUT, {
     type: SwapType.SWAP_ROUTER_02,
     recipient: account.value,
-    slippageTolerance: new Percent(25, 100),
+    slippageTolerance: new Percent(50, 10_000),
     deadline: Math.floor(Date.now() / 1000 + 1800),
   });
 
@@ -230,11 +238,12 @@ export async function multihopQuote(tokenA, tokenB, amount) {
 }
 
 export async function multihopSwap(tokenA, tokenB, amount) {
+  console.log('swap', tokenA, tokenB, amount);
   const { provider, account, signer } = useWallet();
   const router = new AlphaRouter({ chainId: 11155111, provider: provider });
   const tokenIn = await getToken(tokenA);
   const tokenOut = await getToken(tokenB);
-  const wei = ethers.utils.parseUnits(amount, tokenIn.decimals);
+  const wei = ethers.utils.parseUnits(amount.toString(), tokenIn.decimals);
   const inputAmount = CurrencyAmount.fromRawAmount(tokenIn, wei);
   const route = await router.route(inputAmount, tokenOut, TradeType.EXACT_INPUT, {
     type: SwapType.SWAP_ROUTER_02,
@@ -255,4 +264,23 @@ export async function multihopSwap(tokenA, tokenB, amount) {
   const tradeTransaction = await signer.sendTransaction(transaction);
   await tradeTransaction.wait();
   return tradeTransaction;
+}
+
+export async function WrapETH(address, amount) {
+  const { signer } = useWallet();
+  const weth = new ethers.Contract(address, WETHABI, signer);
+  await weth.deposit({ value: ethers.utils.parseEther(amount) });
+}
+
+export async function UnwrapETH(address, amount) {
+  const { signer } = useWallet();
+  const weth = new ethers.Contract(address, WETHABI, signer);
+  await weth.withdraw(ethers.utils.parseEther(amount));
+}
+
+export async function getNativeBalance() {
+  const { provider, account } = useWallet();
+  const balance = await provider.getBalance(account.value);
+  console.log('balance', balance);
+  return balance;
 }

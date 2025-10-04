@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { ref, useId, onMounted } from 'vue';
 import tokensJson from '@/blockchain/tokens.json';
 import { multihopQuote, poolExists } from '@/blockchain/pools';
+import Tokens from '@/blockchain/tokens.json';
 
 const emit = defineEmits(['close', 'selectToken']);
 const selectToken = (token) => {
@@ -11,8 +12,8 @@ const selectToken = (token) => {
 };
 const getDollarValue = async (token) => {
   let dollarvalue = 0;
-  if (token.address !== '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238') {
-    let op = await multihopQuote(token.address, '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', '1');
+  if (token.address !== Tokens[0].address) {
+    let op = await multihopQuote(token.address, Tokens[0].address, '1');
     dollarvalue = op;
   } else {
     dollarvalue = 1;
@@ -24,7 +25,8 @@ const tokens = ref([]);
 onMounted(async () => {
   const enriched = await Promise.all(
     tokensJson.map(async (token) => {
-      if (token.address === '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238') {
+      let dollarvalue;
+      if (token.address === Tokens[0].address) {
         return {
           ...token,
           id: useId(),
@@ -32,14 +34,10 @@ onMounted(async () => {
           usdt: 1,
         };
       }
-      const exists = await poolExists(
-        token.address,
-        '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-        500,
-      );
+      const exists = await poolExists(token.address, Tokens[0].address, 500);
 
       if (!exists) return null;
-      const dollarvalue = Math.floor((await getDollarValue(token)) * 100) / 100;
+      dollarvalue = Math.floor((await getDollarValue(token)) * 100) / 100;
       return {
         ...token,
         id: useId(),
@@ -100,7 +98,7 @@ onMounted(async () => {
         :id="token.id"
         @click="selectToken(token)"
       >
-        <img :src="token.logoURI" alt="" class="modal__token-logo" width="50" height="50" />
+        <img :src="token.logoURI" alt="" class="modal__token-logo" height="50" />
 
         <div class="modal__token-info">
           <span class="modal__token-name">
@@ -108,7 +106,7 @@ onMounted(async () => {
           </span>
 
           <span class="modal__token-value">
-            {{ token.usdt.toLocaleString('en-US').replace(',', ' ') }} USDT
+            {{ token.usdt.toLocaleString('en-US').replace(',', ' ') }} USDC
           </span>
         </div>
 
@@ -332,5 +330,9 @@ label {
   font-size: clamp(13px, 3vw, 18px);
   color: #22212e;
   margin-left: auto;
+}
+.modal__token-logo {
+  height: 50px;
+  width: auto;
 }
 </style>

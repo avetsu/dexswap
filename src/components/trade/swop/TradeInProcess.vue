@@ -48,7 +48,7 @@ const { txState } = storeToRefs(tradeStore);
         txState === 0 ? 'Approval is pending...' : 'Amount approved'
       }}</span>
     </div>
-    <div :class="['signature-message', '', { 'in-progress-active': txState >= 1 }]">
+    <!-- <div :class="['signature-message', '', { 'in-progress-active': txState >= 1 }]">
       <span class="signature-message-icon in-process-icon">
         <svg
           width="12"
@@ -99,7 +99,7 @@ const { txState } = storeToRefs(tradeStore);
         </svg>
       </span>
       <span class="in-progress-text"> Message signature</span>
-    </div>
+    </div> -->
     <div :class="['signature-swop', '', { 'in-progress-active': txState >= 2 }]">
       <span class="signature-swop-icon in-process-icon">
         <svg
@@ -150,7 +150,7 @@ const { txState } = storeToRefs(tradeStore);
           />
         </svg>
       </span>
-      <span class="in-progress-text"> Sign a swap</span>
+      <span class="in-progress-text"> Sign the swap</span>
     </div>
   </div>
 </template>

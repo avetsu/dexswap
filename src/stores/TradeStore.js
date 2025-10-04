@@ -17,6 +17,7 @@ export const useTradeStore = defineStore('TradeStore', () => {
   const rate = ref(0);
   const rateToCurrency = ref(0);
   const feeToCurrency = ref(0);
+  const refresh = ref(false);
 
   return {
     currentTab,
@@ -29,5 +30,6 @@ export const useTradeStore = defineStore('TradeStore', () => {
     feeToCurrency,
     tokenToSend,
     recipient,
+    refresh,
   };
 });
